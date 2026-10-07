@@ -706,6 +706,90 @@
     .ex-label { font-size: 22px; }
     #qOpts { grid-template-columns: 1fr; }
   }
+
+  /* ---------- giữ chuột 1 giây trên từ tiếng Anh → menu tra từ ---------- */
+  #card { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  #wmenu {
+    position: fixed; z-index: 90; display: none; flex-direction: column;
+    min-width: 200px; background: #fff; border: 2.5px solid var(--ink);
+    border-radius: 14px; box-shadow: 3px 3px 0 rgba(26,26,26,.2); overflow: hidden;
+  }
+  #wmenu button {
+    display: flex; gap: 10px; align-items: center; text-align: left;
+    font-family: "Shantell Sans", cursive; font-size: 15px; font-weight: 700;
+    background: none; border: none; padding: 11px 14px; cursor: pointer;
+  }
+  #wmenu button:hover { background: #e7f5ff; }
+  #wmenu button + button { border-top: 1.5px dashed #ccc; }
+  /* thẻ từ điển nổi (View Vocabulary Card) */
+  .vcard-back {
+    position: fixed; inset: 0; z-index: 95; display: none;
+    align-items: center; justify-content: center; padding: 20px;
+    background: rgba(26,26,26,.25);
+  }
+  .vcard-back.open { display: flex; }
+  .vcard {
+    position: relative; width: min(480px, 94vw);
+    background: var(--paper);
+    background-image:
+      linear-gradient(#e8e4d8 1px, transparent 1px),
+      linear-gradient(90deg, #e8e4d8 1px, transparent 1px);
+    background-size: 42px 42px;
+    border: 4px solid var(--ink);
+    border-radius: 40px 14px 36px 18px / 18px 36px 14px 40px;
+    padding: 22px 26px; transform: rotate(-0.6deg);
+    box-shadow: 5px 5px 0 rgba(26,26,26,.2);
+  }
+  .vcard .vc-x {
+    position: absolute; top: 10px; right: 12px;
+    background: #fff; border: 2px solid var(--ink); border-radius: 50%;
+    width: 34px; height: 34px; cursor: pointer; font-size: 15px; font-weight: 800;
+  }
+  .vc-word {
+    font-family: "Shantell Sans", cursive; font-size: 30px; font-weight: 800;
+    color: var(--blue); display: flex; gap: 10px; align-items: center;
+  }
+  .vc-word button { background: none; border: none; font-size: 24px; cursor: pointer; }
+  .vc-ipa { color: var(--red); font-weight: 800; font-size: 17px; margin-top: 2px; }
+  .vc-pos {
+    display: inline-block; font-family: "Shantell Sans", cursive; font-size: 13px;
+    font-weight: 700; color: #fff; background: var(--green);
+    border-radius: 8px; padding: 2px 10px; margin-top: 8px;
+  }
+  .vc-pos:empty { display: none; }
+  .vc-label {
+    font-family: "Shantell Sans", cursive; font-size: 14px; font-weight: 800;
+    color: var(--accent); margin-top: 14px; text-transform: uppercase;
+  }
+  .vc-def { font-size: 17px; margin-top: 4px; }
+  .vc-ex { font-size: 15px; font-style: italic; margin-top: 4px; color: #333; }
+  .vc-src { font-size: 12px; color: #999; margin-top: 12px; }
+  /* toast nhỏ góc dưới */
+  #toast {
+    position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
+    z-index: 96; display: none; background: var(--ink); color: #fff;
+    font-family: "Shantell Sans", cursive; font-size: 15px; font-weight: 700;
+    padding: 10px 20px; border-radius: 30px; box-shadow: 3px 3px 0 rgba(0,0,0,.2);
+    max-width: 90vw; text-align: center;
+  }
+  /* word journal */
+  .jn-row {
+    background: #fff; border: 2px solid var(--ink); border-radius: 14px;
+    padding: 10px 14px; margin-bottom: 10px;
+  }
+  .jn-row .jn-head { display: flex; align-items: center; gap: 10px; }
+  .jn-row .jn-w {
+    font-family: "Shantell Sans", cursive; font-size: 19px; font-weight: 800;
+    color: var(--blue); flex: 1;
+  }
+  .jn-row .jn-ipa { color: var(--red); font-weight: 700; }
+  .jn-row .jn-def { font-size: 15px; margin-top: 4px; }
+  .jn-row .jn-ex { font-size: 13px; font-style: italic; color: #555; margin-top: 2px; }
+  .jn-row button {
+    font-family: inherit; background: #fff; border: 2px solid var(--ink);
+    border-radius: 8px; cursor: pointer; padding: 3px 8px; font-size: 14px;
+  }
+  .jn-row button:hover { background: var(--ink); color: #fff; }
 </style>
 </head>
 <body>
@@ -730,6 +814,7 @@
   <select id="wordPicker"></select>
   <button id="recBtn">🎥 Quay video</button>
   <button id="quizBtn">📝 Luyện tập</button>
+  <button id="journalBtn" title="Sổ từ đã lưu">📓</button>
 </div>
 
 <div class="card" id="card">
@@ -1007,6 +1092,34 @@
       <input id="matNewLink" placeholder="Link (YouTube, PDF...) — có thể bỏ trống">
       <button class="quiz-btn" id="matItemAdd" style="margin-bottom:0;width:auto">➕ Thêm</button>
     </div>
+  </div>
+</div>
+
+<!-- menu giữ chuột 1 giây trên từ tiếng Anh -->
+<div id="wmenu">
+  <button id="wmHear">🔊 Hear Word</button>
+  <button id="wmJournal">📓 Add to Word Journal</button>
+  <button id="wmCard">🅰️ View Vocabulary Card</button>
+</div>
+<div id="toast"></div>
+<div class="vcard-back" id="vocabCard">
+  <div class="vcard">
+    <button class="vc-x" id="vcX">✕</button>
+    <div class="vc-word"><span id="vcWord"></span><button id="vcHear" title="Nghe phát âm">🔊</button></div>
+    <div class="vc-ipa" id="vcIpa"></div>
+    <div class="vc-pos" id="vcPos"></div>
+    <div class="vc-label">Definition</div>
+    <div class="vc-def" id="vcDef"></div>
+    <div class="vc-label">Sample sentence</div>
+    <div class="vc-ex" id="vcEx"></div>
+    <div class="vc-src" id="vcSrc"></div>
+  </div>
+</div>
+<div class="screen full" id="journalScreen">
+  <div class="screen-card">
+    <button class="screen-back" id="journalBack">← Quay lại</button>
+    <h2>📓 Word Journal</h2>
+    <div id="journalList"></div>
   </div>
 </div>
 
@@ -3140,6 +3253,172 @@ if (store.current && (store.current !== ADMIN_NAME || sessionStorage.getItem("di
   renderLogin();
   $("loginScreen").classList.add("open");
 }
+
+/* ---------- giữ chuột 1 giây trên từ tiếng Anh → menu tra từ ---------- */
+const wmenu = $("wmenu"), vcard = $("vocabCard"), toastEl = $("toast");
+let pressTimer = null, pressPos = null, toastTimer = null;
+function toast(msg) {
+  toastEl.textContent = msg;
+  toastEl.style.display = "block";
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.style.display = "none", 2200);
+}
+function hideWMenu() { wmenu.style.display = "none"; }
+/* bắt từ đang nằm dưới con trỏ chuột */
+function wordAtPoint(x, y) {
+  let node = null, off = 0;
+  if (document.caretRangeFromPoint) {
+    const r = document.caretRangeFromPoint(x, y);
+    if (r) { node = r.startContainer; off = r.startOffset; }
+  } else if (document.caretPositionFromPoint) {
+    const p = document.caretPositionFromPoint(x, y);
+    if (p) { node = p.offsetNode; off = p.offset; }
+  }
+  if (!node || node.nodeType !== Node.TEXT_NODE) return "";
+  const t = node.textContent;
+  let a = off, b = off;
+  while (a > 0 && /[A-Za-z'-]/.test(t[a - 1])) a--;
+  while (b < t.length && /[A-Za-z'-]/.test(t[b])) b++;
+  const w = t.slice(a, b).replace(/^[-']+|[-']+$/g, "");
+  return /^[A-Za-z'-]{2,}$/.test(w) ? w.toLowerCase() : "";
+}
+function cancelPress() { clearTimeout(pressTimer); pressPos = null; }
+document.addEventListener("pointerdown", e => {
+  if (e.button !== 0) return;
+  if (!e.target.closest("#card")) { pressPos = null; return; }
+  if (e.target.closest("button,select,input,textarea,a")) return;
+  pressPos = { x: e.clientX, y: e.clientY };
+  clearTimeout(pressTimer);
+  pressTimer = setTimeout(() => {
+    const w = wordAtPoint(pressPos.x, pressPos.y);
+    if (!w) return;
+    try { getSelection().removeAllRanges(); } catch (err) {}
+    wmenu.dataset.word = w;
+    wmenu.style.display = "flex";
+    const r = wmenu.getBoundingClientRect();
+    wmenu.style.left = Math.max(8, Math.min(pressPos.x - r.width / 2, innerWidth - r.width - 8)) + "px";
+    wmenu.style.top = Math.max(8, Math.min(pressPos.y + 14, innerHeight - r.height - 8)) + "px";
+  }, 1000);
+});
+document.addEventListener("pointermove", e => {
+  if (pressPos && Math.hypot(e.clientX - pressPos.x, e.clientY - pressPos.y) > 10) cancelPress();
+});
+["pointerup", "pointercancel"].forEach(ev => document.addEventListener(ev, cancelPress));
+document.addEventListener("scroll", cancelPress, true);
+document.addEventListener("pointerdown", e => {   // chạm ngoài menu thì đóng
+  if (!e.target.closest("#wmenu")) hideWMenu();
+}, true);
+$("card").addEventListener("contextmenu", e => e.preventDefault());   // chặn menu chuột phải khi giữ
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") { hideWMenu(); vcard.classList.remove("open"); }
+});
+$("wmHear").onclick = () => { speakText(wmenu.dataset.word); hideWMenu(); };
+$("wmCard").onclick = () => { hideWMenu(); openVocabCard(wmenu.dataset.word); };
+$("wmJournal").onclick = async () => {
+  const w = wmenu.dataset.word;
+  hideWMenu();
+  const info = await fetchWordInfo(w);
+  addJournal(w, info);
+};
+
+/* tra nghĩa + câu mẫu: Cambridge trước (qua proxy CORS), fallback dictionaryapi.dev */
+const wInfoCache = {};
+async function fetchWordInfo(w) {
+  if (wInfoCache[w]) return wInfoCache[w];
+  const info = { ipa: "", pos: "", def: "", example: "", src: "" };
+  try {
+    const url = "https://api.allorigins.win/raw?url=" +
+      encodeURIComponent("https://dictionary.cambridge.org/dictionary/english/" + w);
+    const html = await (await fetch(url)).text();
+    const d = new DOMParser().parseFromString(html, "text/html");
+    const def = d.querySelector(".def.ddef_d.db");
+    if (def) {
+      info.def = def.textContent.trim().replace(/\s*:\s*$/, "");
+      info.pos = (d.querySelector(".pos.dpos") || { textContent: "" }).textContent.trim();
+      const eg = d.querySelector(".eg.deg");
+      if (eg) info.example = eg.textContent.trim();
+      info.src = "Cambridge";
+    }
+  } catch (e) {}
+  if (!info.def) {
+    try {
+      const j = await (await fetch(
+        `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(w)}`)).json();
+      const m = j[0]?.meanings?.[0], d0 = m?.definitions?.[0];
+      if (d0) {
+        info.def = d0.definition || "";
+        info.pos = m.partOfSpeech || "";
+        info.example = d0.example || "";
+        info.src = "dictionaryapi.dev";
+      }
+      info.ipa = j[0]?.phonetics?.find(x => x.text)?.text || j[0]?.phonetic || "";
+    } catch (e) {}
+  }
+  wInfoCache[w] = info;
+  return info;
+}
+async function openVocabCard(w) {
+  vcard.classList.add("open");
+  $("vcWord").textContent = w;
+  $("vcPos").textContent = "";
+  $("vcDef").textContent = "Đang tra từ điển…";
+  $("vcEx").textContent = "";
+  $("vcSrc").textContent = "";
+  const local = ALL_WORDS.find(x => (x.word || "").toLowerCase() === w);
+  $("vcIpa").textContent = (local && local.ipa) || "";
+  const info = await fetchWordInfo(w);
+  if (!$("vcIpa").textContent && info.ipa) $("vcIpa").textContent = info.ipa;
+  if (!$("vcIpa").textContent) $("vcIpa").textContent = await fetchIpa(w);
+  $("vcPos").textContent = info.pos;
+  $("vcDef").textContent = info.def || "Chưa tra được nghĩa — cần internet.";
+  const localEx = (local?.examples?.[0]?.text || "").replace(/[\[\]]/g, "");
+  $("vcEx").textContent = info.example || localEx || "";
+  $("vcSrc").textContent = info.src ? "Nguồn: " + info.src : "";
+}
+$("vcX").onclick = () => vcard.classList.remove("open");
+vcard.addEventListener("click", e => { if (e.target === vcard) vcard.classList.remove("open"); });
+$("vcHear").onclick = () => speakText($("vcWord").textContent);
+
+/* ---------- Word Journal — sổ từ đã lưu của từng học viên ---------- */
+function journalArr() {
+  const u = store.users[store.current] || (store.users[store.current] = {});
+  return u.journal || (u.journal = []);
+}
+function addJournal(word, info) {
+  if (!store.current) { toast("Hãy đăng nhập để lưu từ vào Word Journal."); return; }
+  const j = journalArr();
+  const i = j.findIndex(x => x.word === word);
+  const rec = { word, ipa: info.ipa, pos: info.pos, def: info.def, example: info.example, at: Date.now() };
+  if (i >= 0) j[i] = rec; else j.unshift(rec);
+  saveStore();
+  toast(`📓 Đã lưu "${word}" vào Word Journal!`);
+}
+function renderJournal() {
+  const j = journalArr();
+  const el = $("journalList");
+  el.innerHTML = j.length ? "" :
+    `<p class="hint">Chưa có từ nào — giữ chuột 1 giây lên một từ trên thẻ rồi chọn "Add to Word Journal".</p>`;
+  j.forEach((r, i) => {
+    const d = document.createElement("div");
+    d.className = "jn-row";
+    d.innerHTML = `<div class="jn-head"><span class="jn-w"></span><span class="jn-ipa"></span>
+        <button class="jn-hear" title="Nghe phát âm">🔊</button>
+        <button class="jn-del" title="Xóa khỏi sổ">🗑</button></div>
+      ${r.pos ? `<div class="vc-pos"></div>` : ""}
+      <div class="jn-def"></div>
+      ${r.example ? `<div class="jn-ex"></div>` : ""}`;
+    d.querySelector(".jn-w").textContent = r.word;
+    d.querySelector(".jn-ipa").textContent = r.ipa || "";
+    if (r.pos) d.querySelector(".vc-pos").textContent = r.pos;
+    d.querySelector(".jn-def").textContent = r.def || "";
+    if (r.example) d.querySelector(".jn-ex").textContent = "“" + r.example + "”";
+    d.querySelector(".jn-hear").onclick = () => speakText(r.word);
+    d.querySelector(".jn-del").onclick = () => { j.splice(i, 1); saveStore(); renderJournal(); };
+    el.appendChild(d);
+  });
+}
+$("journalBtn").onclick = () => { renderJournal(); $("journalScreen").classList.add("open"); };
+$("journalBack").onclick = () => $("journalScreen").classList.remove("open");
 </script>
 </body>
 </html>
