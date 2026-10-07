@@ -764,6 +764,7 @@
   .vc-def { font-size: 17px; margin-top: 4px; }
   .vc-ex { font-size: 15px; font-style: italic; margin-top: 4px; color: #333; }
   .vc-src { font-size: 12px; color: #999; margin-top: 12px; }
+  .vc-src a { color: var(--blue); font-weight: 700; }
   /* toast nhỏ góc dưới */
   #toast {
     position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
@@ -3321,31 +3322,67 @@ $("wmJournal").onclick = async () => {
   addJournal(w, info);
 };
 
-/* tra nghĩa + câu mẫu: Cambridge trước (qua proxy CORS), fallback dictionaryapi.dev */
+/* tra nghĩa + câu mẫu: Cambridge trước (qua nhiều proxy CORS), sau đó
+   Wiktionary REST (CORS sẵn) rồi dictionaryapi.dev — mỗi request có timeout */
 const wInfoCache = {};
 async function fetchWordInfo(w) {
   if (wInfoCache[w]) return wInfoCache[w];
   const info = { ipa: "", pos: "", def: "", example: "", src: "" };
-  try {
-    const url = "https://api.allorigins.win/raw?url=" +
-      encodeURIComponent("https://dictionary.cambridge.org/dictionary/english/" + w);
-    const html = await (await fetch(url)).text();
-    const d = new DOMParser().parseFromString(html, "text/html");
-    const def = d.querySelector(".def.ddef_d.db");
-    if (def) {
-      info.def = def.textContent.trim().replace(/\s*:\s*$/, "");
-      info.pos = (d.querySelector(".pos.dpos") || { textContent: "" }).textContent.trim();
-      const eg = d.querySelector(".eg.deg");
-      if (eg) info.example = eg.textContent.trim();
-      info.src = "Cambridge";
-    }
-  } catch (e) {}
+  const get = async (url, ms = 9000) => {
+    const c = new AbortController();
+    const t = setTimeout(() => c.abort(), ms);
+    try { return await fetch(url, { signal: c.signal }); } finally { clearTimeout(t); }
+  };
+  const stripHtml = s => {
+    const d = new DOMParser().parseFromString(s || "", "text/html");
+    return d.body.textContent.replace(/\s+/g, " ").trim();
+  };
+  /* 1) Cambridge qua proxy CORS — thử lần lượt, proxy nào chết thì qua cái khác */
+  const cambUrl = "https://dictionary.cambridge.org/dictionary/english/" + encodeURIComponent(w);
+  for (const wrap of [
+    u => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
+    u => "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(u),
+    u => "https://api.cors.lol/?url=" + encodeURIComponent(u),
+  ]) {
+    try {
+      const html = await (await get(wrap(cambUrl))).text();
+      const d = new DOMParser().parseFromString(html, "text/html");
+      const def = d.querySelector(".def.ddef_d.db");
+      if (def) {
+        info.def = def.textContent.trim().replace(/\s*:\s*$/, "");
+        info.pos = (d.querySelector(".pos.dpos") || { textContent: "" }).textContent.trim();
+        const eg = d.querySelector(".eg.deg");
+        if (eg) info.example = eg.textContent.trim();
+        info.src = "Cambridge";
+      }
+    } catch (e) {}
+    if (info.def) break;
+  }
+  /* 2) Wiktionary REST — miễn phí, CORS sẵn, có definition + examples */
   if (!info.def) {
     try {
-      const j = await (await fetch(
+      const r = await get(`https://en.wiktionary.org/api/rest_v1/page/definition/${encodeURIComponent(w)}`);
+      const j = await r.json();
+      const senses = (j.en || []).flatMap(e =>
+        (e.definitions || []).map(d0 => ({ pos: e.partOfSpeech, ...d0 })));
+      const hasEx = s => (s.examples?.length || s.parsedExamples?.length);
+      const s = senses.find(hasEx) || senses[0];   // ưu tiên nghĩa có ví dụ — thường là nghĩa phổ biến
+      if (s) {
+        info.def = stripHtml(s.definition);
+        info.pos = (s.pos || "").toLowerCase();
+        const ex = (s.examples || s.parsedExamples?.map(x => x.example) || [])[0];
+        if (ex) info.example = stripHtml(ex);
+        info.src = "Wiktionary";
+      }
+    } catch (e) {}
+  }
+  /* 3) dictionaryapi.dev — cũng lấy IPA */
+  if (!info.def || !info.ipa) {
+    try {
+      const j = await (await get(
         `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(w)}`)).json();
       const m = j[0]?.meanings?.[0], d0 = m?.definitions?.[0];
-      if (d0) {
+      if (!info.def && d0) {
         info.def = d0.definition || "";
         info.pos = m.partOfSpeech || "";
         info.example = d0.example || "";
@@ -3363,17 +3400,20 @@ async function openVocabCard(w) {
   $("vcPos").textContent = "";
   $("vcDef").textContent = "Đang tra từ điển…";
   $("vcEx").textContent = "";
-  $("vcSrc").textContent = "";
+  $("vcSrc").innerHTML = "";
   const local = ALL_WORDS.find(x => (x.word || "").toLowerCase() === w);
   $("vcIpa").textContent = (local && local.ipa) || "";
   const info = await fetchWordInfo(w);
   if (!$("vcIpa").textContent && info.ipa) $("vcIpa").textContent = info.ipa;
   if (!$("vcIpa").textContent) $("vcIpa").textContent = await fetchIpa(w);
   $("vcPos").textContent = info.pos;
-  $("vcDef").textContent = info.def || "Chưa tra được nghĩa — cần internet.";
+  $("vcDef").textContent = info.def || "Chưa tra được nghĩa — thử mở Cambridge bên dưới.";
   const localEx = (local?.examples?.[0]?.text || "").replace(/[\[\]]/g, "");
   $("vcEx").textContent = info.example || localEx || "";
-  $("vcSrc").textContent = info.src ? "Nguồn: " + info.src : "";
+  const cambLink = `https://dictionary.cambridge.org/dictionary/english/${encodeURIComponent(w)}`;
+  $("vcSrc").innerHTML =
+    `<a href="${cambLink}" target="_blank" rel="noopener">📖 Mở trong Cambridge ↗</a>` +
+    (info.src ? ` · Nguồn: ${info.src}` : "");
 }
 $("vcX").onclick = () => vcard.classList.remove("open");
 vcard.addEventListener("click", e => { if (e.target === vcard) vcard.classList.remove("open"); });
