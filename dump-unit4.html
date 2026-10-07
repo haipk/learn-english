@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Dump Unit 4 data</title>
+<style>
+  body { font-family: monospace; padding: 24px; background: #fffdf7; }
+  pre { background: #f4f0e8; border: 2px solid #1a1a1a; border-radius: 8px; padding: 16px; white-space: pre-wrap; word-break: break-all; font-size: 13px; }
+  button { font-size: 16px; padding: 10px 20px; margin-bottom: 12px; cursor: pointer; }
+  #st { font-size: 15px; margin-bottom: 10px; font-weight: bold; }
+</style>
+</head>
+<body>
+<h2>Unit 4 — In the living room (dữ liệu trong app)</h2>
+<div id="st">Đang đọc localStorage…</div>
+<button id="copyBtn">📋 Copy toàn bộ JSON bên dưới</button>
+<pre id="out"></pre>
+<script>
+const out = document.getElementById("out");
+const st  = document.getElementById("st");
+let found = null, src = "";
+try {
+  const cu = JSON.parse(localStorage.getItem("vocab_custom_units") || "[]");
+  const ov = JSON.parse(localStorage.getItem("vocab_unit_overrides") || "{}");
+  const isU4 = u => u && /living room/i.test(u.topic || "") || (u && +u.unit === 4 && /context 2/i.test(u.book || ""));
+  for (const u of cu) if (isU4(u)) { found = u; src = "vocab_custom_units"; break; }
+  if (!found) for (const [k, o] of Object.entries(ov)) if (o.words && (isU4(o) || /living room/i.test((o.topic||"")))) { found = o; src = "vocab_unit_overrides[" + k + "]"; break; }
+  if (!found && cu.length) { found = cu; src = "vocab_custom_units (toàn bộ — không lọc được unit 4)"; }
+} catch (e) { st.textContent = "Lỗi: " + e.message; }
+if (found) {
+  st.textContent = "✅ Nguồn: " + src + " — copy JSON dưới đây gửi lại cho Devin";
+  out.textContent = JSON.stringify(found, null, 2);
+} else if (src !== "") {
+  out.textContent = "Không thấy unit 4 trong localStorage.";
+} else {
+  out.textContent = "Không có dữ liệu vocab_custom_units / vocab_unit_overrides trong localStorage của trình duyệt này.\n(Hãy mở file này bằng ĐÚNG trình duyệt mà bạn đang chạy vocab-cards.html)";
+}
+document.getElementById("copyBtn").onclick = () => {
+  navigator.clipboard.writeText(out.textContent).then(() => {
+    document.getElementById("copyBtn").textContent = "✅ Đã copy — dán vào chat cho Devin";
+  });
+};
+</script>
+</body>
+</html>
