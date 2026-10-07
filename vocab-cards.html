@@ -1,0 +1,3145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>English Vocabulary Cards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gochi+Hand&family=Shantell+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --green: #2f9e44;
+    --blue: #1971c2;
+    --paper: #fffdf7;
+    --accent: #e8590c;
+    --red: #e03131;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  [hidden] { display: none !important; }   /* tránh display:flex... đè lên hidden */
+  body {
+    font-family: "Gochi Hand", "Comic Sans MS", "Chalkboard SE", cursive;
+    background: #ece7dc;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+    color: var(--ink);
+  }
+
+  /* ---------- toolbar ---------- */
+  .toolbar {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    align-items: center; justify-content: center;
+    margin-bottom: 14px;
+  }
+  .toolbar button, .toolbar select {
+    font-family: inherit; font-size: 15px;
+    padding: 8px 16px; cursor: pointer;
+    background: #fff; color: var(--ink);
+    border: 2.5px solid var(--ink);
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  }
+
+  /* ---------- băng rôn tên sách / unit ---------- */
+  .book-banner {
+    display: inline-flex; align-items: center; gap: 14px;
+    background: #fff;
+    border: 3px solid var(--ink);
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+    padding: 10px 26px;
+    margin-bottom: 14px;
+    transform: rotate(-0.5deg);
+    box-shadow: 3px 3px 0 rgba(26,26,26,.15);
+  }
+  .book-banner .book {
+    font-family: "Shantell Sans", cursive;
+    font-size: 17px; font-weight: 700; color: var(--accent);
+    background: none; border: none; cursor: pointer; padding: 0;
+
+  }
+  .book-banner .book:hover { color: #d6336c; }
+  .book-banner .unit {
+    font-family: "Shantell Sans", cursive;
+    font-size: 20px; font-weight: 800;
+    background: transparent; border: none; cursor: pointer;
+    color: var(--blue); max-width: 60vw;
+  }
+  .toolbar button:hover { background: var(--ink); color: #fff; }
+  .counter { font-size: 15px; min-width: 70px; text-align: center; }
+  /* hộp người học cố định góc phải trên */
+  #userBox {
+    position: fixed; top: 12px; right: 16px; z-index: 45;
+    display: flex; gap: 8px; align-items: center;
+    font-family: "Shantell Sans", cursive; font-size: 15px; font-weight: 700;
+  }
+  /* nút 🏠 nổi — hiện trên mọi màn hình phụ (trừ trang chủ & đăng nhập) */
+  #homeFloat {
+    position: fixed; top: 12px; right: 16px; z-index: 70; display: none;
+    font-family: "Shantell Sans", cursive; font-size: 17px; font-weight: 700;
+    background: #fff; border: 2.5px solid var(--ink); cursor: pointer;
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+    padding: 6px 14px; box-shadow: 2px 2px 0 rgba(26,26,26,.15);
+  }
+  #homeFloat:hover { background: var(--ink); }
+  #userName {
+    font-family: inherit; cursor: pointer;
+    background: #fff; border: 2.5px solid var(--ink);
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+    padding: 6px 14px; box-shadow: 2px 2px 0 rgba(26,26,26,.15);
+  }
+  /* ---------- trang chủ DinoB Lab ---------- */
+  #homeScreen.open {
+    display: flex; flex-direction: column; align-items: stretch;
+    justify-content: flex-start; padding: 0;
+  }
+  #homeScreen .topbar {
+    width: 100%; box-sizing: border-box;
+    display: flex; align-items: center; flex-wrap: wrap;
+    padding: 10px 18px; background: var(--paper);
+    border-bottom: 3px solid var(--ink);
+  }
+  #homeScreen .tb-right {
+    display: flex; align-items: center; gap: 8px; min-width: 0;
+    margin-left: auto;
+  }
+  #homeScreen .tb-mid {
+    flex: 1; display: flex; align-items: center; justify-content: space-evenly;
+    gap: 4px; flex-wrap: wrap;
+  }
+  #homeScreen .brand {
+    font-family: "Shantell Sans", cursive; font-size: 22px; font-weight: 800;
+    margin-right: 12px; white-space: nowrap;
+  }
+  .nav-btn {
+    font-family: "Shantell Sans", cursive; font-size: 16px; font-weight: 700;
+    background: none; border: none; cursor: pointer; padding: 8px 12px;
+    white-space: nowrap;
+  }
+  .nav-btn:hover { color: var(--accent); }
+  .nav-drop { position: relative; }
+  .nav-menu {
+    display: none; position: absolute; top: 100%; left: 0; z-index: 60;
+    min-width: 170px; background: #fff;
+    border: 2.5px solid var(--ink); border-radius: 12px;
+    box-shadow: 3px 3px 0 rgba(26,26,26,.15); overflow: hidden;
+  }
+  .nav-drop:hover .nav-menu, .nav-menu.open { display: block; }
+  .nav-menu button {
+    display: block; width: 100%; text-align: left; cursor: pointer;
+    font-family: inherit; font-size: 15px; font-weight: 700;
+    background: none; border: none; padding: 10px 14px;
+  }
+  .nav-menu button:hover { background: #e7f5ff; }
+  .spacer { flex: 1; }
+  .home-body {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; text-align: center; padding: 20px;
+  }
+  .home-photo {
+    width: 190px; height: 190px; object-fit: cover; border-radius: 50%;
+    border: 4px solid var(--ink); box-shadow: 0 6px 0 rgba(26,26,26,.15);
+    margin-bottom: 18px; transform: rotate(-2deg);
+  }
+  .home-quote {
+    font-family: "Shantell Sans", cursive; font-size: 18px; font-weight: 700;
+    color: var(--accent); margin-top: 14px;
+  }
+  .db-tools { display: flex; gap: 6px; align-items: center; margin-top: 22px; }
+  .book-card {
+    display: block; width: 100%; text-align: left; cursor: pointer;
+    font-family: "Shantell Sans", cursive; font-size: 20px; font-weight: 800;
+    background: #fff; border: 2.5px solid var(--ink);
+    border-radius: 20px 8px 18px 8px / 8px 18px 8px 20px;
+    padding: 14px 16px; margin-bottom: 12px;
+  }
+  .book-card small { display: block; font-weight: 400; font-size: 14px; color: #666; margin-top: 4px; }
+  .book-card:hover { background: #e7f5ff; }
+  /* ---------- BIO profile ---------- */
+  #bioScreen.open { align-items: flex-start; }
+  #bioScreen .bio-card {
+    width: min(1150px, 100%); max-width: none; margin: 0 auto;
+    display: grid; grid-template-columns: 1.05fr 1fr 1fr; gap: 6px 30px;
+    align-content: start;
+  }
+  .bio-head { grid-column: 1 / -1; position: relative; padding-right: 190px; }
+  .bio-remember { grid-column: 1 / -1; }
+  @media (max-width: 900px) { #bioScreen .bio-card { grid-template-columns: 1fr; } }
+  .bio-photo {
+    position: absolute; top: 0; right: 0;
+    width: 175px; height: 175px; object-fit: cover;
+    border: 4px solid var(--ink); border-radius: 50%;
+    box-shadow: 0 6px 0 rgba(26,26,26,.15); cursor: pointer;
+  }
+  .bio-card h2 { text-align: center; font-size: 30px; margin-bottom: 4px; }
+  .bio-card .bio-sub { text-align: center; font-size: 20px; color: var(--accent); margin-bottom: 18px; }
+  .bio-info {
+    background: #fff; border: 2.5px solid var(--ink);
+    border-radius: 20px 8px 18px 8px / 8px 18px 8px 20px;
+    padding: 14px 18px; margin-bottom: 16px;
+    font-size: 17px; line-height: 1.7;
+  }
+  .bio-info b { color: var(--blue); }
+  .bio-sec { margin-bottom: 18px; }
+  .bio-sec h3 {
+    font-family: "Shantell Sans", cursive; font-size: 20px;
+    color: var(--green); margin-bottom: 8px;
+  }
+  .bio-sec p { font-size: 16px; line-height: 1.7; margin-bottom: 6px; }
+  .bio-sec em { color: var(--blue); font-style: normal; font-weight: 700; }
+  .bio-list { list-style: none; }
+  .bio-list li {
+    background: #fff; border: 2px solid var(--ink); border-radius: 12px;
+    padding: 10px 14px; margin-bottom: 8px; font-size: 15px;
+  }
+  .bio-list li b { display: block; font-size: 16px; }
+  .bio-remember {
+    text-align: center; font-family: "Shantell Sans", cursive;
+    font-size: 19px; font-weight: 700; color: var(--accent);
+    line-height: 1.8; padding: 10px 0;
+  }
+  .user-row { display: flex; gap: 6px; align-items: stretch; margin-bottom: 8px; }
+  .user-row .quiz-btn { flex: 1; margin-bottom: 0; }
+  .user-del {
+    font-family: inherit; font-size: 15px; cursor: pointer;
+    background: #fff; border: 2.5px solid var(--ink); border-radius: 10px;
+    padding: 0 10px;
+  }
+  .user-del:hover { background: #ffe3e3; }
+  /* ---------- báo cáo học tập ---------- */
+  .plan-card {
+    background: #d8ecfa; border: 2.5px solid var(--ink);
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+    padding: 14px 22px; max-width: 380px; margin: 0;   /* bám lề trái */
+  }
+  .plan-week {
+    text-align: center; font-weight: 800; font-size: 19px;
+    font-family: "Shantell Sans", cursive;
+    border-bottom: 2px dashed var(--ink); padding-bottom: 6px; margin-bottom: 8px;
+  }
+  .plan-sec { margin: 8px 0; }
+  .plan-sec .plan-num { font-weight: 800; margin-right: 4px; }
+  .plan-item {
+    display: flex; align-items: center; gap: 8px;
+    margin: 5px 0 5px 24px; cursor: pointer; font-size: 15px;
+  }
+  .plan-item .plan-box {
+    width: 19px; height: 19px; flex: none;
+    border: 2px solid var(--ink); border-radius: 5px; background: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800;
+  }
+  .plan-item.done { opacity: .55; }
+  .plan-item.done .plan-txt { text-decoration: line-through; }
+  .rep-bar {
+    position: relative; height: 30px; margin-bottom: 12px;
+    background: #f1f0ea; border: 2.5px solid var(--ink); border-radius: 12px;
+    overflow: hidden;
+  }
+  #repFill {
+    height: 100%; width: 0; background: var(--green);
+    transition: width .4s;
+  }
+  #repFillText {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-family: "Shantell Sans", cursive; font-weight: 700; font-size: 15px;
+  }
+  #repDetail .rep-row {
+    background: #fff; border: 2px solid var(--ink); border-radius: 10px;
+    padding: 8px 12px; margin-bottom: 6px; font-size: 14px;
+  }
+  #repSummary p { margin-bottom: 6px; }
+
+  /* ---------- card frame (wavy hand-drawn border) ---------- */
+  .card {
+    background: var(--paper);
+    background-image:
+      linear-gradient(#e8e4d8 1px, transparent 1px),
+      linear-gradient(90deg, #e8e4d8 1px, transparent 1px);
+    background-size: 42px 42px;
+    width: 100%; max-width: 980px;
+    padding: 34px 44px 40px;
+    border: 5px solid var(--ink);
+    border-radius: 60px 20px 55px 25px / 25px 55px 20px 60px;
+    position: relative;
+
+    /* khung ngoài cố định tỷ lệ 16:9 như video YouTube */
+    aspect-ratio: 16 / 9;
+
+    /* bố cục cố định: hàng 1 = từ vựng (không có gì ngang hàng),
+       hàng 2 = IPA/nghĩa/keywords | Example + hình */
+    display: grid;
+    gap: 10px 30px;
+    grid-template-columns: 1fr 1.2fr;
+    grid-template-areas:
+      "wtitle wtitle"
+      "word   ex1";
+  }
+  h1.word    { grid-area: wtitle; }
+  .zone-word { grid-area: word; }
+  #zoneEx1 { grid-area: ex1; }
+  .zone-ex { display: flex; flex-direction: column; gap: 14px; align-items: stretch; }
+  /* ví dụ: biển câu -> nhãn "Example" -> hình minh họa */
+  #zoneEx1 .sign        { order: 1; }
+  #zoneEx1 .ex-label    { order: 2; }
+  #zoneEx1 .ex-img-wrap { order: 3; }
+
+  h1.word {
+    font-family: "Shantell Sans", "Gochi Hand", cursive;
+    font-weight: 800;
+    font-size: 34px; letter-spacing: 1px;
+    text-transform: uppercase; line-height: 1;
+    transform: rotate(-0.6deg);
+  }
+  .word-num { color: var(--ink); }
+  .ipa { font-size: 20px; margin: 8px 0 16px; display: flex; align-items: center; gap: 8px;
+         color: var(--red); font-weight: 700; }
+  .ipa button {
+    border: none; background: none; cursor: pointer; font-size: 24px; padding: 0 4px;
+    display: inline-flex; align-items: center;
+  }
+  .mean-q { font-size: 19px; margin-bottom: 10px; }
+  .mean-q b { color: var(--blue); }
+
+  /* "sign held by hands" box */
+  .sign {
+    display: inline-block;
+    background: #fff;
+    border: 3px solid var(--ink);
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+    padding: 12px 22px;
+    font-size: 19px;
+    position: relative;
+    max-width: 100%;
+    transform: rotate(-1.1deg);
+    box-shadow: none;
+  }
+  .sign::before, .sign::after {
+    content: "✋"; font-size: 18px; position: absolute; top: 50%;
+    transform: translateY(-50%);
+  }
+  .sign::before { left: -22px; }
+  .sign::after { right: -22px; transform: translateY(-50%) scaleX(-1); }
+  .sign .hl { color: var(--blue); font-weight: 700; }
+
+  .keywords {
+    font-family: "Shantell Sans", "Gochi Hand", cursive;
+    font-size: 32px; font-weight: 800; color: var(--green);
+    line-height: 1.15; text-transform: uppercase; margin-top: 22px;
+    transform: rotate(-1.4deg);
+    display: block; text-align: center;   /* căn giữa trong cột trái */
+  }
+  .keywords .and { font-size: 20px; font-weight: 600; }
+
+  .ex-label {
+    font-family: "Shantell Sans", "Gochi Hand", cursive;
+    font-size: 27px; font-weight: 800;
+    text-align: center;
+    transform: rotate(0.8deg);
+  }
+
+  .zone-ex .sign { font-size: 19px; width: 100%; text-align: center; }
+  .ex-img-wrap {
+    min-height: 200px; display: flex; align-items: center; justify-content: center;
+    position: relative;
+    margin-top: auto;   /* đẩy hình xuống đáy zone cho cân đối */
+    padding-top: 32px;  /* tách hình khỏi hàng phía trên */
+  }
+  /* miếng băng dính dán hình lên giấy (chỉ hiện khi có hình) */
+  .ex-img-wrap:has(.ex-img)::before {
+    content: ""; position: absolute; top: -10px; left: 50%;
+    width: 90px; height: 24px;
+    background: rgba(255, 225, 130, 0.55);
+    transform: translateX(-50%) rotate(-2deg);
+    border-left: 1px dashed rgba(0,0,0,.15);
+    border-right: 1px dashed rgba(0,0,0,.15);
+    z-index: 2;
+  }
+  .ex-img {
+    width: 100%; height: 240px; object-fit: contain;
+    /* multiply: nền trắng của hình hòa vào nền giấy -> trông như vẽ lên thẻ */
+    mix-blend-mode: multiply;
+    transform: rotate(1.4deg);
+    filter: contrast(1.05);
+  }
+  /* bong bóng thoại của nhân vật trong hình */
+  .bubble {
+    position: absolute; top: -14px; left: 6px; z-index: 3;
+    background: #fff;
+    border: 2.5px solid var(--ink);
+    border-radius: 20px 16px 22px 14px / 14px 22px 16px 20px;
+    padding: 8px 14px;
+    font-size: 15px; line-height: 1.3;
+    max-width: 72%;
+    transform: rotate(-1.2deg);
+  }
+  .bubble::after {
+    content: ""; position: absolute; bottom: -11px; left: 26px;
+    width: 16px; height: 16px; background: #fff;
+    border-right: 2.5px solid var(--ink);
+    border-bottom: 2.5px solid var(--ink);
+    transform: rotate(45deg);
+  }
+  .img-loading { color: #868e96; font-size: 14px; font-style: italic; }
+  .img-fallback { font-size: 90px; line-height: 1; }
+
+  /* ---------- add-word panel ---------- */
+  .panel {
+    width: 100%; max-width: 980px; margin-top: 16px;
+    background: #fff; border: 2.5px solid var(--ink);
+    border-radius: 20px 8px 18px 8px / 8px 18px 8px 20px;
+    padding: 18px 22px; display: none;
+  }
+  .panel.open { display: block; }
+  .panel h3 { margin-bottom: 10px; }
+  .panel input, .panel textarea {
+    font-family: inherit; font-size: 15px; width: 100%;
+    padding: 8px 10px; margin-bottom: 8px;
+    border: 2px solid #ced4da; border-radius: 8px;
+  }
+  .panel .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .panel button {
+    font-family: inherit; font-size: 15px; padding: 8px 18px; cursor: pointer;
+    background: var(--green); color: #fff; border: none; border-radius: 10px;
+  }
+  .hint { font-size: 13px; color: #868e96; margin-top: 8px; }
+
+  /* ---------- menu unit ---------- */
+  /* ---------- màn hình tạo danh sách mới ---------- */
+  .screen {
+    position: fixed; inset: 0; z-index: 50;
+    background: #ece7dc;
+    display: none;
+    align-items: flex-start; justify-content: center;
+    padding: 40px 24px;
+    overflow: auto;
+  }
+  .screen.open { display: flex; }
+  /* màn hình tràn toàn trang (các mục trên menu) */
+  .screen.full { padding: 0; }
+  .screen.full .screen-card {
+    max-width: none !important; min-height: 100vh; border-radius: 0;
+  }
+  #recScreen { z-index: 55; }
+  /* ---------- học liệu theo môn ---------- */
+  .mat-row { display: flex; gap: 8px; align-items: stretch; margin-bottom: 8px; }
+  .mat-row .book-card { flex: 1; }
+  .mat-item {
+    align-items: center; background: #fff;
+    border: 2px solid var(--ink); border-radius: 12px; padding: 8px 12px;
+  }
+  .mat-item .mat-name { flex: 1; font-weight: 700; font-size: 15px; }
+  .mat-item .quiz-btn { margin-bottom: 0; padding: 6px 12px; font-size: 14px; width: auto; flex: none; }
+  .mat-add { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
+  .mat-add input { flex: 1; }
+  .screen-card {
+    background: var(--paper);
+    background-image:
+      linear-gradient(#e8e4d8 1px, transparent 1px),
+      linear-gradient(90deg, #e8e4d8 1px, transparent 1px);
+    background-size: 42px 42px;
+    width: 100%; max-width: 940px;
+    border: 4px solid var(--ink);
+    border-radius: 60px 20px 55px 25px / 25px 55px 20px 60px;
+    padding: 30px 36px 36px;
+  }
+  .screen-card h2 {
+    font-family: "Shantell Sans", cursive;
+    font-size: 28px; margin-bottom: 18px;
+  }
+  .screen-card input {
+    font-family: inherit; font-size: 16px; width: 100%;
+    padding: 10px 12px; margin-bottom: 10px;
+    border: 2px solid #ced4da; border-radius: 8px;
+  }
+  .screen-card .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  /* ---------- thẻ sửa từng từ trong unit ---------- */
+  .e-word {
+    position: relative; background: #fff; border: 2px solid var(--ink);
+    border-radius: 14px; padding: 12px 14px; margin-bottom: 12px;
+  }
+  .e-word .ew-head { display: flex; gap: 10px; }
+  .e-word .ew-head .ew-word { font-weight: 800; }
+  .e-word .e-wdel {
+    position: absolute; top: 8px; right: 8px;
+    background: #fff; border: 2px solid var(--ink); border-radius: 8px;
+    cursor: pointer; padding: 2px 8px; font-size: 14px;
+  }
+  .e-word .e-wdel:hover { background: #ffe3e3; }
+  .e-word .e-ex { margin-top: 8px; padding-top: 6px; border-top: 1px dashed #ced4da; }
+  .e-word .e-ex-title { font-size: 13px; font-weight: 700; color: var(--accent); }
+  .e-imgrow { display: flex; gap: 6px; align-items: center; margin: 4px 0; }
+  .e-imgrow input { flex: 1; }
+  .e-imgrow .ew-up { width: auto; padding: 4px 10px; font-size: 15px; }
+  .e-imgrow .ew-prev { height: 56px; border-radius: 8px; border: 1.5px dashed #adb5bd;
+    background: #fff; padding: 2px; }
+  .e-imgrow .ew-prev:not([src]) { display: none; }
+
+  /* ---------- màn hình danh sách unit ---------- */
+  .book-group {
+    font-family: "Shantell Sans", cursive;
+    font-weight: 700; color: var(--accent); font-size: 16px;
+    margin: 12px 0 6px; cursor: pointer; user-select: none;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .book-group .bg-arrow { font-size: 12px; color: var(--ink); transition: transform .15s; }
+  .book-group.open .bg-arrow { transform: rotate(90deg); }
+  .book-group .bg-count { font-weight: 400; font-size: 13px; color: #888; }
+  .book-grp.closed { display: none; }
+  .book-group:first-child { margin-top: 0; }
+  .unit-item {
+    display: flex; align-items: center; gap: 6px; width: 100%;
+    font-family: inherit; font-size: 17px;
+    padding: 6px 8px 6px 16px; margin-bottom: 8px;
+    background: var(--paper); color: var(--ink);
+    border: 2.5px solid var(--ink);
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  }
+  .unit-item:hover { background: #fff3d6; }
+  .unit-item.active { background: var(--green); color: #fff; }
+  .unit-item b { color: inherit; }
+  .unit-item .unit-open {
+    flex: 1; text-align: left; font: inherit; color: inherit;
+    background: none; border: none; cursor: pointer; padding: 4px 0;
+  }
+  .unit-item.empty .unit-open { opacity: .45; cursor: default; }
+  .unit-act {
+    border: none; background: rgba(0,0,0,.06); cursor: pointer;
+    font-size: 14px; border-radius: 8px; padding: 4px 8px; line-height: 1;
+  }
+  .unit-act:hover { background: rgba(0,0,0,.18); }
+  .unit-item .unit-prog { font-size: 12px; color: inherit; opacity: .75; }
+
+  /* ---------- quiz ---------- */
+  .quiz-btn {
+    font-family: inherit; font-size: 17px;
+    display: block; width: 100%; text-align: left;
+    padding: 12px 18px; margin-bottom: 10px; cursor: pointer;
+    background: #fff; color: var(--ink);
+    border: 2.5px solid var(--ink);
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  }
+  .quiz-btn:hover { background: var(--ink); color: #fff; }
+  .quiz-btn:disabled { opacity: .4; cursor: default; background: #f1f0ea; }
+  /* Quiz 1: nút nghe tròn cam + lưới đáp án 2x2 pastel */
+  .quiz-listen {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    margin: 8px auto 18px; background: none; border: none; cursor: pointer;
+    font-family: inherit;
+  }
+  .quiz-listen .circ {
+    width: 84px; height: 84px; border-radius: 50%;
+    background: radial-gradient(circle at 32% 28%, #ffd43b, #f59f00);
+    display: flex; align-items: center; justify-content: center;
+    border: 4px solid #fff;
+    box-shadow: 0 5px 16px rgba(245, 159, 0, .45);
+    transition: transform .15s;
+  }
+  .quiz-listen:hover .circ { transform: scale(1.07); }
+  .quiz-listen .lbl { color: #868e96; font-size: 15px; }
+  /* step thu gọn/mở — bấm vào tiêu đề Practice */
+  .step-head { cursor: pointer; user-select: none; display: flex; align-items: center; gap: 8px; }
+  .step-head .caret { display: inline-block; transition: transform .15s; font-size: 15px; }
+  .step.closed .caret { transform: rotate(-90deg); }
+  .step.closed .step-body { display: none; }
+  /* chữ lớn hơn trong các bước luyện tập */
+  #quizBody .step h3 { font-size: 24px; }
+  #quizBody input, #quizBody textarea { font-size: 19px; padding: 12px 16px; }
+  #quizBody .quiz-btn { font-size: 19px; padding: 12px 20px; }
+  #quizBody .hint { font-size: 16px; }
+  #quizBody .wrong-list { font-size: 17px; }
+  #quizProg { font-size: 17px; }
+  #qOpts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .quiz-opt {
+    position: relative; border: none; border-radius: 16px;
+    padding: 24px 20px; cursor: pointer;
+    font-family: "Segoe UI", "Arial", sans-serif;
+    font-size: 18px; line-height: 1.4; text-align: center;
+    color: var(--ink);
+  }
+  .quiz-opt:nth-child(4n+1) { background: #e7f5ff; }
+  .quiz-opt:nth-child(4n+2) { background: #fff3bf; }
+  .quiz-opt:nth-child(4n+3) { background: #e6fcf5; }
+  .quiz-opt:nth-child(4n+4) { background: #ffe8f5; }
+  .quiz-opt:hover { filter: brightness(.96); }
+  .quiz-opt .badge {
+    position: absolute; bottom: 8px; right: 8px;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: #f59f00; color: #fff;
+    font-weight: 700; font-size: 13px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .quiz-opt.ok  { background: #d3f9d8 !important; outline: 3px solid var(--green); }
+  .quiz-opt.bad { background: #ffe3e3 !important; outline: 3px solid var(--red); }
+  #quizBody input[type="text"] {
+    font-family: inherit; font-size: 18px; width: 100%;
+    padding: 10px 12px; margin-bottom: 10px;
+    border: 2.5px solid var(--ink); border-radius: 10px;
+  }
+  .wrong-list {
+    font-size: 14px; color: var(--red); margin: 8px 0;
+    line-height: 1.5;
+  }
+  /* huy hiệu "đang ôn tập từ chưa thuộc" — bấm để thoát */
+  #reviewBadge {
+    position: fixed; right: 22px; bottom: 22px; z-index: 45;
+    font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+    background: var(--accent); color: #fff;
+    border: 3px solid var(--ink);
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+    padding: 10px 18px; box-shadow: 0 4px 12px rgba(0,0,0,.25);
+  }
+  /* các bước luyện tập theo thứ tự */
+  .step {
+    background: #fff; border: 2.5px solid var(--ink);
+    border-radius: 20px 8px 18px 8px / 8px 18px 8px 20px;
+    padding: 14px 16px; margin-bottom: 14px;
+  }
+  .step.locked { opacity: .5; }
+  .step h3 { margin-bottom: 10px; }
+  .step video {
+    width: 100%; border-radius: 12px; margin-bottom: 10px;
+    border: 2px solid var(--ink); background: #000;
+  }
+  /* quay video trên màn hình thẻ: bong bóng camera tròn kéo thả + thanh điều khiển */
+  #recBar {
+    position: fixed; left: 20px; bottom: 20px; z-index: 55;
+    display: flex; gap: 8px; align-items: center;
+    background: #fff; border: 3px solid var(--ink);
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+    padding: 8px 14px; box-shadow: 0 4px 12px rgba(0,0,0,.25);
+  }
+  #recBar button {
+    font-family: inherit; font-size: 15px; font-weight: 700;
+    background: none; border: none; cursor: pointer; padding: 4px 8px;
+  }
+  #recDot { color: var(--red); font-weight: 700; animation: recBlink 1s infinite; }
+  @keyframes recBlink { 50% { opacity: .15; } }
+  #camBubble {
+    position: fixed; left: 20px; bottom: 90px; z-index: 60;
+    width: 140px; cursor: grab; touch-action: none; user-select: none;
+  }
+  #camBubble:active { cursor: grabbing; }
+  #camView {
+    width: 140px; height: 140px; border-radius: 50%;
+    object-fit: cover; background: #000; display: block;
+    border: 4px solid var(--ink);
+    box-shadow: 0 4px 14px rgba(0,0,0,.3);
+  }
+  #camView.off { filter: brightness(.15) grayscale(1); }
+  #camToggles { display: flex; gap: 6px; justify-content: center; margin-top: 6px; }
+  #camToggles button {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 2.5px solid var(--ink); background: #fff;
+    cursor: pointer; font-size: 15px; line-height: 1;
+  }
+  #camToggles button.off { background: #f1f0ea; opacity: .7; }
+  .screen-card textarea {
+    font-family: inherit; font-size: 15px; width: 100%;
+    padding: 10px 12px; margin-bottom: 10px;
+    border: 2px solid #ced4da; border-radius: 8px;
+    resize: vertical;
+  }
+  .screen-card .save {
+    font-family: inherit; font-size: 16px; padding: 10px 22px; cursor: pointer;
+    background: var(--green); color: #fff; border: none; border-radius: 10px;
+  }
+  .screen-back {
+    font-family: inherit; font-size: 15px;
+    padding: 8px 16px; cursor: pointer; margin-bottom: 20px;
+    background: #fff; color: var(--ink);
+    border: 2.5px solid var(--ink);
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  }
+  .screen-back:hover { background: var(--ink); color: #fff; }
+
+
+  /* ---------- phóng to chữ toàn cục ---------- */
+  body { font-size: 17px; }
+  .toolbar button, .toolbar select { font-size: 17px; }
+  .counter { font-size: 17px; }
+  #userBox, #userName { font-size: 17px; }
+  .book-banner .book { font-size: 19px; }
+  .book-banner .unit { font-size: 22px; }
+  h1.word { font-size: 40px; }
+  .ipa { font-size: 23px; }
+  .mean-q { font-size: 22px; }
+  .sign { font-size: 22px; }
+  .zone-ex .sign { font-size: 22px; }
+  .keywords { font-size: 36px; }
+  .keywords .and { font-size: 22px; }
+  .ex-label { font-size: 30px; }
+  .bubble { font-size: 17px; }
+  .hint { font-size: 15px; }
+  input, textarea, select { font-size: 17px; }
+  .quiz-btn { font-size: 17px; }
+  .nav-btn { font-size: 17px; }
+  .book-card { font-size: 20px; }
+  .book-card small { font-size: 16px; }
+  .unit-item .unit-open { font-size: 18px; }
+  .unit-item .unit-prog { font-size: 14px; }
+  .mat-item .mat-name { font-size: 17px; }
+  .mat-item .quiz-btn { font-size: 15px; }
+  .screen-card h2 { font-size: 26px; }
+  .bio-card h2 { font-size: 34px; }
+  .bio-card .bio-sub { font-size: 22px; }
+  .bio-info { font-size: 19px; }
+  .bio-sec h3 { font-size: 22px; }
+  .bio-sec p { font-size: 17px; }
+  .bio-list li { font-size: 16px; }
+  .bio-list li b { font-size: 17px; }
+  .e-word .e-ex-title { font-size: 15px; }
+  .quiz-listen .lbl { font-size: 17px; }
+
+  @media (max-width: 720px) {
+    .card {
+      grid-template-columns: 1fr;
+      grid-template-areas: "wtitle" "word" "ex1";
+      aspect-ratio: auto;   /* mobile: xếp dọc, không giữ 16:9 */
+    }
+    h1.word { font-size: 26px; }
+    .keywords { font-size: 24px; }
+    .ex-label { font-size: 22px; }
+    #qOpts { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div id="userBox">
+  <button id="userName" title="Đổi người học"></button>
+</div>
+<button id="homeFloat" title="Về trang chủ">🏠</button>
+
+<div class="book-banner">
+  <select class="book" id="bookSel" title="Chọn bộ sách"></select>
+  <select class="unit" id="unitPicker" title="Chọn unit"></select>
+</div>
+
+<div class="toolbar">
+  <button id="homeBtn" title="Về trang chủ">🏠</button>
+  <button id="unitsBtn" title="Danh sách unit của bộ sách">← Quay lại</button>
+  <button id="prevBtn">◀ Trước</button>
+  <span class="counter" id="counter"></span>
+  <button id="nextBtn">Sau ▶</button>
+  <button id="shuffleBtn">🔀 Ngẫu nhiên</button>
+  <select id="wordPicker"></select>
+  <button id="recBtn">🎥 Quay video</button>
+  <button id="quizBtn">📝 Luyện tập</button>
+</div>
+
+<div class="card" id="card">
+  <h1 class="word"><span class="word-num" id="wordNum"></span> <span id="wordText"></span></h1>
+  <div class="zone-word">
+    <div class="ipa"><button id="speakBtn" title="Nghe phát âm"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z" fill="var(--red)"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg></button><span id="ipaText"></span></div>
+    <div class="mean-q">What does <b id="meanWord"></b> mean?</div>
+    <div class="sign" id="meaningSign"></div>
+    <div class="keywords" id="keywords"></div>
+  </div>
+  <div class="zone-ex" id="zoneEx1">
+    <div class="ex-label" id="ex1Label"></div>
+    <div class="sign" id="ex1Sign"></div>
+    <div class="ex-img-wrap" id="img1Wrap"></div>
+  </div>
+</div>
+
+
+
+<div class="screen" id="homeScreen">
+  <div class="topbar">
+    <span class="brand">🦕 DinoB Lab</span>
+    <div class="tb-mid">
+      <button class="nav-btn" data-subject="BIO">BIO</button>
+      <button class="nav-btn" data-subject="REPORT">MY PROGRESS</button>
+      <button class="nav-btn" data-subject="MATH">MATH</button>
+      <div class="nav-drop">
+        <button class="nav-btn" id="engBtn">ENGLISH ▾</button>
+        <div class="nav-menu" id="engMenu">
+          <button data-subject="LISTENING - SPEAKING">LISTENING - SPEAKING</button>
+          <button data-subject="READING">READING</button>
+          <button data-subject="WRITING">WRITING</button>
+          <button data-subject="GRAMMAR">GRAMMAR</button>
+          <button data-subject="VOCABULARY">VOCABULARY</button>
+        </div>
+      </div>
+    </div>
+    <div class="tb-right">
+      <span id="homeUser" style="font-weight:700;white-space:nowrap"></span>
+      <button class="nav-btn" id="homeLogin">Đăng nhập</button>
+    </div>
+  </div>
+  <div class="home-body">
+    <img class="home-photo" id="homePhoto" src="dinob.png" alt="DinoB">
+    <h2>👋 Chào mừng đến DinoB Lab!</h2>
+    <p class="hint">Chọn môn học ở thanh menu phía trên để bắt đầu.</p>
+    <p class="home-quote">Learn something. Try something. Make something. Every day. 🌱</p>
+    <div class="db-tools" id="dbTools" hidden>
+      <span class="hint" id="dbStatus"></span>
+      <button class="nav-btn" id="dbExport">💾 Xuất .sqlite</button>
+      <button class="nav-btn" id="dbImportBtn">📥 Nhập .sqlite</button>
+      <input type="file" id="dbImport" accept=".sqlite,.sqlite3,.db" hidden>
+    </div>
+  </div>
+</div>
+
+<div class="screen full" id="bioScreen">
+  <div class="screen-card bio-card">
+    <div class="bio-head">
+      <button class="screen-back" id="bioBack">← Quay lại</button>
+      <h2>🦖 DinoB Profile</h2>
+      <div class="bio-sub">Meet DinoB</div>
+      <img class="bio-photo" id="bioPhoto" src="dinob.png" alt="DinoB" title="Bấm để đổi ảnh">
+      <input type="file" id="bioPhotoInput" accept="image/*" hidden>
+    </div>
+    <div class="bio-col">
+      <div class="bio-info">
+        <b>Nguyễn Minh Bách</b><br>
+        Nickname: <b>DinoB</b><br>
+        Born: 2016 &nbsp;·&nbsp; Grade: 5<br>
+        School: Hồng Hà Primary School
+      </div>
+      <div class="bio-sec">
+        <p>DinoB is a curious learner who loves Science, Space, Sports, and Drawing.</p>
+        <p>This is his own learning space — a place where he can learn new things,
+           practice what he knows, explore what he is curious about, and create
+           something of his own.</p>
+      </div>
+    </div>
+    <div class="bio-col">
+      <div class="bio-sec">
+        <h3>🎯 My Learning Style</h3>
+        <p><em>Learn • Practice • Create</em></p>
+        <p>I learn by understanding.<br>I practice by trying.<br>
+           I improve by learning from my mistakes.<br>
+           And I create by turning what I learn into something of my own.</p>
+      </div>
+      <div class="bio-sec">
+        <h3>🚀 My Mission</h3>
+        <p>My mission is not to be perfect.<br>
+           My mission is to keep learning and getting better.<br>
+           Every new thing I learn is a step forward.</p>
+      </div>
+    </div>
+    <div class="bio-col">
+      <div class="bio-sec">
+        <h3>🏆 My Progress</h3>
+        <ul class="bio-list">
+          <li><b>Things I Can Do Now</b>Things I have learned and can do by myself.</li>
+          <li><b>Things I'm Working On</b>Skills and knowledge I am practicing and improving.</li>
+          <li><b>Things I Want to Explore</b>Questions, ideas, and new things I want to discover.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="bio-remember">
+      🌱 Remember<br>
+      Learn something. Try something. Make something.<br>
+      Every day.
+    </div>
+  </div>
+</div>
+
+<div class="screen full" id="reportScreen">
+  <div class="screen-card" style="max-width:720px">
+    <button class="screen-back" id="reportBack">← Quay lại</button>
+    <h2 id="repTitle">📊 Báo cáo học tập — tuần này</h2>
+    <div class="row" id="repUserRow" hidden style="align-items:center;margin-bottom:10px">
+      <span>👑 Admin — xem &amp; cập nhật dữ liệu của:</span>
+      <select id="repUser" style="font-family:inherit;font-size:15px;padding:6px 10px;border:2.5px solid var(--ink);border-radius:10px"></select>
+    </div>
+    <div class="bio-sec">
+      <h3>🎯 Mục tiêu tuần</h3>
+      <div class="plan-card">
+        <div class="plan-week" style="display:flex;align-items:center;justify-content:center;gap:8px">
+          <button class="quiz-btn" id="wkPrev" style="margin:0;padding:0 10px;font-size:15px;width:auto;flex:none;line-height:1.4">◀</button>
+          <span id="planWeek" style="white-space:nowrap;font-size:15px"></span>
+          <button class="quiz-btn" id="wkNext" style="margin:0;padding:0 10px;font-size:15px;width:auto;flex:none;line-height:1.4">▶</button>
+        </div>
+        <div id="planList"></div>
+        <div style="text-align:center;margin-top:8px">
+          <button class="quiz-btn" id="planEdit" style="margin-bottom:0;font-size:14px;padding:6px 14px">✏️ Sửa kế hoạch</button>
+        </div>
+      </div>
+      <div id="planEditor" style="display:none;margin-top:10px">
+        <textarea id="planText" rows="9" style="width:100%;box-sizing:border-box;font-family:inherit;font-size:15px;padding:10px;border:2.5px solid var(--ink);border-radius:12px" placeholder="Vocab&#10;- Unit 7 - Quiz&#10;- Unit 8 - Quiz + Bài tập&#10;- Quay video các từ sai&#10;Reading: 3 bài / ngày&#10;Bài&#10;- At school&#10;- My big brother"></textarea>
+        <div class="row" style="align-items:center">
+          <button class="quiz-btn" id="planSave" style="margin-bottom:0">💾 Lưu kế hoạch</button>
+          <span class="hint">Mỗi mục 1 dòng. Dòng bắt đầu bằng "- " là việc cần tick ✅</span>
+        </div>
+      </div>
+    </div>
+    <div class="bio-sec">
+      <h3>📈 Tiến độ thực hiện</h3>
+      <div class="rep-bar"><div id="repFill"></div><span id="repFillText"></span></div>
+      <div id="repDetail"></div>
+    </div>
+    <div class="bio-sec">
+      <h3>🏁 Tổng kết tuần</h3>
+      <div id="repSummary"></div>
+    </div>
+  </div>
+</div>
+
+<div class="screen full" id="booksScreen">
+  <div class="screen-card" style="max-width:640px">
+    <button class="screen-back" id="booksBack">← Quay lại</button>
+    <h2>📚 Bộ sách từ vựng đang học</h2>
+    <div id="bookList"></div>
+    <button class="quiz-btn" id="newBookBtn">📚➕ Thêm bộ sách mới</button>
+  </div>
+</div>
+
+<div class="screen full" id="unitScreen">
+  <div class="screen-card" style="max-width:640px">
+    <button class="screen-back" id="unitBack">← Quay lại</button>
+    <h2>📖 Danh sách Unit</h2>
+    <div id="unitList"></div>
+    <button class="quiz-btn" id="newListBtn">📚➕ Danh sách mới</button>
+  </div>
+</div>
+
+<div class="screen full" id="recScreen">
+  <div class="screen-card" style="max-width:720px">
+    <button class="screen-back" id="recBack">← Quay lại</button>
+    <h2>🎥 Video vừa quay</h2>
+    <video id="recFinal" controls style="width:100%;border-radius:12px;margin-bottom:10px"></video>
+    <div class="hint" id="recSaved" hidden>💾 Video đã lưu vào máy — xem lại được bất cứ lúc nào bằng nút 🎬.</div>
+    <button class="quiz-btn" id="recDl">💾 Tải về máy</button>
+    <button class="quiz-btn" id="recRetry">🎥 Quay lại</button>
+    <button class="quiz-btn" id="recDoneBtn">✅ Hoàn thành</button>
+  </div>
+</div>
+
+<!-- bong bóng camera + thanh điều khiển quay, nổi trên màn hình thẻ -->
+<div id="camBubble" hidden>
+  <video id="camView" autoplay muted playsinline></video>
+  <div id="camToggles">
+    <button id="camToggle" title="Tắt/mở camera">📷</button>
+    <button id="micToggle" title="Tắt/mở mic">🎤</button>
+  </div>
+</div>
+<div id="recBar" hidden>
+  <span id="recDot" hidden>● REC</span>
+  <button id="recStop" hidden>⏹ Dừng</button>
+  <button id="recMark" hidden>✅ Đã quay ngoài</button>
+  <button id="recClose" title="Tắt camera">✖</button>
+</div>
+
+<button id="reviewBadge" hidden>🔁 Đang ôn tập từ chưa thuộc — bấm để xem lại tất cả</button>
+
+<div class="screen" id="loginScreen">
+  <div class="screen-card" style="max-width:440px;text-align:center">
+    <h2>👋 Chào bạn! Bạn tên là gì?</h2>
+    <div class="row" style="align-items:center">
+      <input type="text" id="loginName" placeholder="Nhập tên của bạn">
+      <button class="quiz-btn" id="loginBtn" style="margin-bottom:0">Vào học ▶</button>
+    </div>
+    <div id="loginUsers" style="margin-top:6px"></div>
+  </div>
+</div>
+
+<div class="screen full" id="quizScreen">
+  <div class="screen-card" style="max-width:1000px">
+    <button class="screen-back" id="quizBack">← Quay lại</button>
+    <h2 id="quizTitle">Luyện tập</h2>
+    <div class="hint" id="quizProg"></div>
+    <div id="quizBody" style="margin-top:14px"></div>
+  </div>
+</div>
+
+<div class="screen full" id="editScreen">
+  <div class="screen-card">
+    <button class="screen-back" id="editBack">← Quay lại</button>
+    <h2>Chỉnh sửa danh sách</h2>
+    <input id="eBook" list="bookList" placeholder="Thuộc bộ sách">
+    <div class="row">
+      <input id="eUnit" placeholder="Unit số mấy">
+      <input id="eTopic" placeholder="Chủ đề">
+    </div>
+    <h3 style="font-family:'Shantell Sans',cursive;color:var(--green)">📝 Từ vựng trong danh sách</h3>
+    <div id="eWords"></div>
+    <button class="quiz-btn" id="eAddWord" style="width:auto;margin-bottom:14px">➕ Thêm từ</button>
+    <button class="save" id="saveEdit">Lưu thay đổi</button>
+  </div>
+</div>
+
+<div class="screen full" id="listScreen">
+  <div class="screen-card">
+    <button class="screen-back" id="listBack">← Quay lại</button>
+    <h2>Tạo danh sách từ vựng mới</h2>
+    <input id="fBook" list="bookList" placeholder="Thuộc bộ sách (VD: Essential Vocabulary In Context)">
+    <datalist id="bookList"></datalist>
+    <div class="row">
+      <input id="fUnit" placeholder="Unit số mấy (VD: 9)">
+      <input id="fTopic" placeholder="Chủ đề (VD: At the zoo)">
+    </div>
+    <label style="font-size:15px">Hoặc tải ảnh / file PDF trang unit lên để đọc tự động (đọc từ trên xuống, khung trái trước rồi khung phải):</label>
+    <input type="file" id="fImage" accept="image/*,.pdf">
+    <div class="hint" id="ocrStatus"></div>
+    <textarea id="fWords" rows="8" placeholder="Dán danh sách từ vựng theo 1 trong 2 mẫu (IPA tùy chọn):&#10;&#10;Mẫu khối:&#10;**aunt**&#10;/ænt/&#10;the sister of your mother or father&#10;My aunt lives in a big house.&#10;&#10;Mẫu dòng:&#10;aunt | /ænt/ | the sister of your parents | My aunt lives near the park."></textarea>
+    <button class="save" id="saveList">Tạo danh sách</button>
+    <div class="hint">Mỗi từ = 1 khối <b>**word**</b> + các dòng (IPA?, nghĩa, câu ví dụ), hoặc 1 dòng <b>word | IPA? | nghĩa | câu ví dụ</b>. Cột IPA tùy chọn — tự nhận diện nếu bắt đầu bằng "/" hoặc chứa ký tự phiên âm; bỏ trống thì app tự tra từ điển. Từ vựng trong câu ví dụ được tự tô xanh. Danh sách lưu vào trình duyệt (localStorage); muốn lưu vĩnh viễn thì thêm vào mảng UNITS trong file.</div>
+  </div>
+</div>
+
+<div class="screen full" id="matScreen">
+  <div class="screen-card">
+    <button class="screen-back" id="matBack">← Quay lại</button>
+    <h2 id="matTitle">📚 Học liệu</h2>
+    <div id="matList"></div>
+    <div class="mat-add" id="matAddRow">
+      <input id="matNewName" placeholder="Tên bộ / playlist mới (VD: Reading A-Z)">
+      <button class="quiz-btn" id="matAdd" style="margin-bottom:0;width:auto">➕ Thêm bộ</button>
+    </div>
+  </div>
+</div>
+
+<div class="screen full" id="matItemScreen">
+  <div class="screen-card">
+    <button class="screen-back" id="matItemBack">← Quay lại</button>
+    <h2 id="matItemTitle"></h2>
+    <div id="matItemList"></div>
+    <div class="mat-add" id="matItemAddRow">
+      <input id="matNewItem" placeholder="Tên bài / video mới">
+      <input id="matNewLink" placeholder="Link (YouTube, PDF...) — có thể bỏ trống">
+      <button class="quiz-btn" id="matItemAdd" style="margin-bottom:0;width:auto">➕ Thêm</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js"></script>
+<script>
+/* ============================================================
+   ẢNH MINH HỌA — người dùng tải lên từ máy trong màn hình ✏️ sửa unit
+   (nút 📷 cạnh ô ảnh của từng ví dụ), lưu trong IndexedDB "dinob_img"
+   theo key "idb:<random>" ghi vào trường img của ví dụ. Hoặc ghi sẵn
+   đường dẫn ảnh (tên file cạnh html / URL) vào trường img.
+   ============================================================ */
+
+/* Tên bộ sách — hiển thị trên banner */
+const BOOK_TITLE = "Essential Vocabulary In Context 1";
+
+/* ---------- ảnh minh họa: TẢI LÊN từ máy ở màn hình sửa unit (không dùng AI) ----
+   Trong màn hình ✏️ sửa unit, mỗi ví dụ có nút 📷 → chọn file → lưu blob vào
+   IndexedDB "dinob_img" (dung lượng lớn, offline) dưới key "idb:<random>",
+   key đó được ghi vào trường img của ví dụ nên đi cùng dữ liệu từ vựng.
+   Nếu trường img là đường dẫn thường (tên file cạnh html / URL / data:)
+   → dùng trực tiếp. Key cũ dạng "unitId|word|exIdx" vẫn được tra dự phòng. */
+let IDB = null;
+const imgCache = {};   // key -> Blob đang giữ trong phiên
+const _idbOpen = indexedDB.open("dinob_img", 1);
+_idbOpen.onupgradeneeded = () => _idbOpen.result.createObjectStore("img");
+_idbOpen.onsuccess = () => { IDB = _idbOpen.result; if (typeof ALL_WORDS !== "undefined" && ALL_WORDS.length) render(); };
+function idbGet(k) {
+  return new Promise(res => {
+    if (!IDB) return res(null);
+    try {
+      const rq = IDB.transaction("img").objectStore("img").get(k);
+      rq.onsuccess = () => res(rq.result || null);
+      rq.onerror = () => res(null);
+    } catch (e) { res(null); }
+  });
+}
+function idbPut(k, v) {
+  if (!IDB) return;
+  try { IDB.transaction("img", "readwrite").objectStore("img").put(v, k); } catch (e) {}
+}
+const imgPicker = document.createElement("input");
+imgPicker.type = "file"; imgPicker.accept = "image/*"; imgPicker.hidden = true;
+document.body.appendChild(imgPicker);
+let imgPickCb = null;
+imgPicker.onchange = () => {
+  const f = imgPicker.files[0];
+  imgPicker.value = "";
+  if (f && imgPickCb) imgPickCb(f);
+  imgPickCb = null;
+};
+/* pickImage(cb): mở hộp chọn file, gọi cb(file) — dùng trong màn hình sửa unit */
+function pickImage(cb) { imgPickCb = cb; imgPicker.click(); }
+function newImgKey() {
+  return "idb:" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+function hashCode(s) {   // vẫn dùng cho seed — giữ lại phòng trường hợp cần
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h % 100000;
+}
+
+/* ============================================================
+   DANH SÁCH TỪ VỰNG — thêm từ mới ở đây để lưu vĩnh viễn.
+   Trong câu ví dụ, viết [word] để tự tô xanh từ vựng.
+   ============================================================ */
+/* DANH SÁCH UNIT — mỗi unit gồm: số unit, chủ đề, mảng words.
+   Thêm unit mới: chép một khối { unit, topic, words: [...] }. */
+const UNITS = [
+  {
+    unit: 8,
+    topic: "Friends and relatives",
+    words: [
+  {
+    word: "aunt",
+    ipa: "/ænt/",
+    meaning: 'The <span class="hl">SISTER</span> of your mother or father, or the <span class="hl">WIFE</span> of your uncle!',
+    keywords: ["MUM'S", "SISTER!"],
+    examples: [
+      { text: "My [aunt] lives in a big house near the park.",
+        img: "smiling aunt waving in front of a big house near a park",
+        quote: "Welcome to my big house!",
+        emoji: "🏠" },
+      { text: "[Aunt] Sarah bought me a fun book for my birthday.",
+        img: "aunt giving a wrapped book to a happy child at a birthday party",
+        quote: "Happy birthday! This book is for you!",
+        emoji: "🎁" }
+    ]
+  },
+  {
+    word: "best friend",
+    ipa: "/ˌbest ˈfrend/",
+    meaning: 'The friend you <span class="hl">LIKE MOST</span> of all!',
+    keywords: ["BEST", "BUDDY!"],
+    examples: [
+      { text: "Ben is my [best friend] at school.",
+        img: "two boys laughing together at school",
+        quote: "You're my best buddy, Ben!",
+        emoji: "🤝" },
+      { text: "I like to play football with my [best friend].",
+        img: "two kids playing football together on a field",
+        quote: "Pass me the ball, bestie!",
+        emoji: "⚽" }
+    ]
+  },
+  {
+    word: "brother",
+    ipa: "/ˈbrʌðər/",
+    meaning: 'A <span class="hl">BOY</span> or <span class="hl">MAN</span> who has the same parents as you!',
+    keywords: ["MALE", "SIBLING!"],
+    examples: [
+      { text: "My older [brother] helps me with my homework.",
+        img: "older brother helping younger sibling with homework at a desk",
+        quote: "Let me show you how to do it!",
+        emoji: "📚" },
+      { text: "I share a room with my little [brother].",
+        img: "two brothers playing in a shared bedroom with bunk beds",
+        quote: "Top bunk is mine!",
+        emoji: "🛏️" }
+    ]
+  },
+  {
+    word: "cousin",
+    ipa: "/ˈkʌzən/",
+    meaning: 'A <span class="hl">CHILD</span> of your aunt or uncle!',
+    keywords: ["UNCLE'S", "KID!"],
+    examples: [
+      { text: "My [cousin] came to visit us last weekend.",
+        img: "happy cousin arriving at a house with a small suitcase",
+        quote: "Hi! I came to visit you!",
+        emoji: "🧳" },
+      { text: "We played video games with our [cousins].",
+        img: "kids playing video games together on a sofa",
+        quote: "Let's play one more round!",
+        emoji: "🎮" }
+    ]
+  },
+  {
+    word: "enemy",
+    ipa: "/ˈenəmi/",
+    meaning: 'A person who <span class="hl">DISLIKES</span> you and wants to <span class="hl">HURT</span> you!',
+    keywords: ["NOT", "A", "FRIEND!"],
+    examples: [
+      { text: "In the story, the hero defeats his [enemy].",
+        img: "brave knight hero defeating a villain in a storybook battle",
+        quote: "The hero always wins!",
+        emoji: "⚔️" },
+      { text: "Dogs and cats are not always [enemies].",
+        img: "dog and cat cuddling together peacefully",
+        quote: "We can be friends too!",
+        emoji: "🐶" }
+    ]
+  },
+  {
+    word: "family",
+    ipa: "/ˈfæməli/",
+    meaning: 'A group of people including your <span class="hl">PARENTS</span>, brothers, sisters, aunts, uncles, grandfather, grandmother, etc!',
+    keywords: ["MUM, DAD", "and", "ME!"],
+    examples: [
+      { text: "We usually eat dinner together as a [family].",
+        img: "happy family eating dinner together around a table",
+        quote: "Dinner time, everyone!",
+        emoji: "🍽️" },
+      { text: "I love spending time with my [family] on weekends.",
+        img: "family having a picnic in the park on a sunny day",
+        quote: "Weekend fun with my family!",
+        emoji: "🧺" }
+    ]
+  },
+  {
+    word: "father",
+    ipa: "/ˈfɑðər/",
+    meaning: 'The <span class="hl">MAN</span> who is your parent!',
+    keywords: ["DAD", "or", "DADDY!"],
+    examples: [
+      { text: "My [father] drives me to school every morning.",
+        img: "father driving a car with a smiling kid in a car seat",
+        quote: "Buckle up! Let's go to school!",
+        emoji: "🚗" },
+      { text: "Her [father] is a doctor at the hospital.",
+        img: "father wearing a doctor coat working at a hospital",
+        quote: "I help sick people get better!",
+        emoji: "👨‍⚕️" }
+    ]
+  },
+  {
+    word: "friend",
+    ipa: "/frend/",
+    meaning: 'A person you <span class="hl">LIKE</span> and enjoy being with, and who feels the same about you!',
+    keywords: ["PAL!", "and", "BUDDY!"],
+    examples: [
+      { text: "I met a new [friend] at the park today.",
+        img: "two kids shaking hands and smiling at a park",
+        quote: "Hi! Want to be friends?",
+        emoji: "🌳" },
+      { text: "Good [friends] always help each other.",
+        img: "kid helping a friend pick up dropped books",
+        quote: "Let me help you pick those up!",
+        emoji: "🤗" }
+    ]
+  },
+  {
+    word: "grandfather",
+    ipa: "/ˈɡrænfɑðər/",
+    meaning: 'The <span class="hl">FATHER</span> of one of your parents!',
+    keywords: ["GRANDPA", "or", "GRANDDAD!"],
+    examples: [
+      { text: "My [grandfather] likes to tell funny stories.",
+        img: "grandfather telling funny stories to laughing grandchildren",
+        quote: "Did I tell you about the time...?",
+        emoji: "📖" },
+      { text: "We went fishing with my [grandfather] yesterday.",
+        img: "grandpa and grandchild fishing by a lake",
+        quote: "Shh... the fish are biting!",
+        emoji: "🎣" }
+    ]
+  },
+  {
+    word: "grandmother",
+    ipa: "/ˈɡrænmʌðər/",
+    meaning: 'The <span class="hl">MOTHER</span> of one of your parents!',
+    keywords: ["GRANDMA", "or", "NANNY!"],
+    examples: [
+      { text: "[Grandmother] bakes delicious cakes for us.",
+        img: "kind grandmother baking a cake in a cozy kitchen",
+        quote: "Fresh cake, just for you!",
+        emoji: "🎂" },
+      { text: "I visited my [grandmother] in the countryside.",
+        img: "child hugging grandmother outside a country cottage",
+        quote: "Grandma, I missed you!",
+        emoji: "🏡" }
+    ]
+  },
+  {
+    word: "husband",
+    ipa: "/ˈhʌzbənd/",
+    meaning: 'The <span class="hl">MAN</span> that a woman has married!',
+    keywords: ["MARRIED", "MAN!"],
+    examples: [
+      { text: "Mrs. Green and her [husband] are very kind.",
+        img: "kind wife and husband smiling together in front of their house",
+        quote: "Welcome to our home!",
+        emoji: "💑" },
+      { text: "Her [husband] works in a bank.",
+        img: "husband working at a bank counter",
+        quote: "How can I help you today?",
+        emoji: "🏦" }
+    ]
+  },
+  {
+    word: "make friends",
+    ipa: "/meɪk ˈfrendz/",
+    meaning: "To <span class=\"hl\">BECOME</span> someone's <span class=\"hl\">FRIEND</span>!",
+    keywords: ["NEW", "FRIENDS!"],
+    examples: [
+      { text: "It is easy to [make friends] when you are polite.",
+        img: "polite kid greeting new classmates at school",
+        quote: "Hello! Nice to meet you!",
+        emoji: "😊" },
+      { text: "She [made friends] with a new girl in her class.",
+        img: "two girls smiling together in a classroom",
+        quote: "Let's be friends!",
+        emoji: "👧" }
+    ]
+  },
+  {
+    word: "mother",
+    ipa: "/ˈmʌðər/",
+    meaning: 'The <span class="hl">WOMAN</span> who is your parent!',
+    keywords: ["MUM", "or", "MUMMY!"],
+    examples: [
+      { text: "My [mother] cooks yummy pasta for dinner.",
+        img: "mother cooking pasta in the kitchen",
+        quote: "Dinner is ready, sweetie!",
+        emoji: "🍝" },
+      { text: "I gave my [mother] a flower on her birthday.",
+        img: "child giving a flower to a happy mother",
+        quote: "Happy birthday, Mum!",
+        emoji: "💐" }
+    ]
+  },
+  {
+    word: "neighbour",
+    ipa: "/ˈneɪbər/",
+    meaning: 'Someone who <span class="hl">LIVES NEAR</span> you!',
+    keywords: ["LIVES", "NEXT", "DOOR!"],
+    examples: [
+      { text: "Our [neighbour] gave us fresh apples from his garden.",
+        img: "friendly neighbour handing apples over a garden fence",
+        quote: "Fresh from my garden!",
+        emoji: "🍎" },
+      { text: "The girl next door is my [neighbour] and classmate.",
+        img: "girl waving from the house next door",
+        quote: "See you at school tomorrow!",
+        emoji: "🏠" }
+    ]
+  },
+  {
+    word: "only child",
+    ipa: "/ˈoʊnli ˌtʃaɪld/",
+    meaning: 'Someone who has <span class="hl">NO</span> brothers or sisters!',
+    keywords: ["NO", "SIBLINGS!"],
+    examples: [
+      { text: "Alex is an [only child], so he does not have brothers.",
+        img: "boy playing happily alone with many toys",
+        quote: "All these toys are mine!",
+        emoji: "🧸" },
+      { text: "Being an [only child] means having your own bedroom.",
+        img: "child relaxing alone in a big cozy bedroom",
+        quote: "This whole room is mine!",
+        emoji: "🛏️" }
+    ]
+  },
+  {
+    word: "parent",
+    ipa: "/ˈperənt/",
+    meaning: 'One of the two people, your <span class="hl">MOTHER</span> and your <span class="hl">FATHER</span>, who made you!',
+    keywords: ["MUM", "and", "DAD!"],
+    examples: [
+      { text: "My [parents] take me to the zoo on Sundays.",
+        img: "parents with child looking at animals at the zoo",
+        quote: "Look, a giraffe!",
+        emoji: "🦁" },
+      { text: "Every child needs love from their [parents].",
+        img: "parents hugging their child warmly",
+        quote: "We love you so much!",
+        emoji: "❤️" }
+    ]
+  },
+  {
+    word: "related",
+    ipa: "/rɪˈleɪtɪd/",
+    meaning: 'Belonging to the same <span class="hl">FAMILY</span>!',
+    keywords: ["SAME", "FAMILY!"],
+    examples: [
+      { text: "Tim and Tom look alike because they are [related].",
+        img: "two similar-looking brothers smiling together",
+        quote: "We're brothers — that's why!",
+        emoji: "👬" },
+      { text: "Are you [related] to the new student in our class?",
+        img: "kid whispering a question to a friend in classroom",
+        quote: "Is he your cousin?",
+        emoji: "❓" }
+    ]
+  },
+  {
+    word: "relative",
+    ipa: "/ˈrelətɪv/",
+    meaning: 'A <span class="hl">MEMBER</span> of your family!',
+    keywords: ["FAMILY", "MEMBER!"],
+    examples: [
+      { text: "All our [relatives] came to the family party.",
+        img: "big family gathering party with many happy relatives",
+        quote: "The whole family is here!",
+        emoji: "🎉" },
+      { text: "My uncle is my favourite [relative].",
+        img: "child hugging a smiling uncle",
+        quote: "Uncle Mike is the best!",
+        emoji: "👨‍👦" }
+    ]
+  },
+  {
+    word: "sister",
+    ipa: "/ˈsɪstər/",
+    meaning: 'A <span class="hl">GIRL</span> or <span class="hl">WOMAN</span> who has the same parents as you!',
+    keywords: ["FEMALE", "SIBLING!"],
+    examples: [
+      { text: "My [sister] likes to draw pictures in her notebook.",
+        img: "girl drawing pictures in a notebook",
+        quote: "Look at my drawing!",
+        emoji: "✏️" },
+      { text: "I walk to school with my younger [sister].",
+        img: "two sisters walking to school with backpacks",
+        quote: "Race you to the school gate!",
+        emoji: "🎒" }
+    ]
+  },
+  {
+    word: "stranger",
+    ipa: "/ˈstreɪndʒər/",
+    meaning: 'Someone you <span class="hl">DO NOT KNOW</span>!',
+    keywords: ["UNKNOWN", "PERSON!"],
+    examples: [
+      { text: "Never accept candy from a [stranger].",
+        img: "child saying no to a stranger offering candy",
+        quote: "No, thank you! I don't know you!",
+        emoji: "🍬" },
+      { text: "A [stranger] asked my teacher for directions.",
+        img: "lost person asking a teacher for directions on the street",
+        quote: "Excuse me, where is the station?",
+        emoji: "🗺️" }
+    ]
+  },
+  {
+    word: "uncle",
+    ipa: "/ˈʌŋkəl/",
+    meaning: 'The <span class="hl">BROTHER</span> of your mother or father, or the <span class="hl">HUSBAND</span> of your aunt!',
+    keywords: ["PARENT'S", "BROTHER!"],
+    examples: [
+      { text: "My [uncle] taught me how to ride a bicycle.",
+        img: "uncle teaching a child to ride a bicycle",
+        quote: "Keep pedaling, you can do it!",
+        emoji: "🚲" },
+      { text: "We visited my [uncle]'s farm last summer.",
+        img: "uncle showing animals on his farm to visiting kids",
+        quote: "Come meet the cows!",
+        emoji: "🚜" }
+    ]
+  },
+  {
+    word: "wife",
+    ipa: "/waɪf/",
+    meaning: 'The <span class="hl">WOMAN</span> that a man has married!',
+    keywords: ["MARRIED", "WOMAN!"],
+    examples: [
+      { text: "Mr. Lee wrote a sweet song for his [wife].",
+        img: "man singing a song to his smiling wife",
+        quote: "This song is for you, dear!",
+        emoji: "🎵" },
+      { text: "His [wife] works as a teacher in our school.",
+        img: "wife teaching students in a classroom",
+        quote: "Good morning, class!",
+        emoji: "👩‍🏫" }
+    ]
+  }
+    ]
+  }
+];
+
+/* ---------- từ & danh sách do người dùng thêm qua giao diện ---------- */
+const customWords = JSON.parse(localStorage.getItem("vocab_custom_words") || "[]");
+const customUnits = JSON.parse(localStorage.getItem("vocab_custom_units") || "[]");
+/* sửa/xóa unit gốc trong file -> lưu override vào localStorage
+   _id "bN" = unit thứ N trong mảng UNITS, "cN" = unit thứ N trong customUnits */
+const unitOverrides = JSON.parse(localStorage.getItem("vocab_unit_overrides") || "{}");
+const hiddenUnits  = JSON.parse(localStorage.getItem("vocab_hidden_units") || "[]");
+/* migrate: đổi tên bộ sách cũ "Essential Vocabulary In Context" -> "... 1"
+   trong unit tự tạo và override đã lưu (chạy một lần lúc nạp) */
+(function migrateBookTitle() {
+  const OLD = "Essential Vocabulary In Context";
+  let dirty = false;
+  customUnits.forEach(u => { if (u.book === OLD) { u.book = BOOK_TITLE; dirty = true; } });
+  Object.values(unitOverrides).forEach(o => { if (o.book === OLD) { o.book = BOOK_TITLE; dirty = true; } });
+  if (dirty) {
+    localStorage.setItem("vocab_custom_units", JSON.stringify(customUnits));
+    localStorage.setItem("vocab_unit_overrides", JSON.stringify(unitOverrides));
+  }
+})();
+let ALL_UNITS = [];
+function rebuildUnits() {
+  ALL_UNITS = [
+    ...UNITS.map((u, i) => {
+      const base = { book: BOOK_TITLE, ...u, _id: "b" + i };
+      return unitOverrides[base._id] ? { ...base, ...unitOverrides[base._id] } : base;
+    }).filter(u => !hiddenUnits.includes(u._id)),
+    ...customUnits.map((u, j) => ({ ...u, _id: "c" + j }))
+  ];
+}
+rebuildUnits();
+let unitIdx = 0;
+let ALL_WORDS = [];
+
+/* ---------- đăng nhập & tiến độ luyện tập từng học viên ---------- */
+/* localStorage["vocab_users"] = { current: "Tên", users: { "Tên": { progress: {...} } } } */
+const store = JSON.parse(localStorage.getItem("vocab_users") || '{"current":null,"users":{}}');
+const saveStore = () => localStorage.setItem("vocab_users", JSON.stringify(store));
+let progress = {};   // trỏ vào store.users[current].progress sau khi đăng nhập
+function loadUser(name) {
+  store.current = name;
+  const u = store.users[name] || (store.users[name] = {});
+  progress = u.progress || (u.progress = {});
+  const legacy = localStorage.getItem("vocab_progress");   // chuyển tiến độ cũ sang user đầu tiên
+  if (legacy) {
+    try { Object.assign(progress, JSON.parse(legacy)); } catch (e) {}
+    localStorage.removeItem("vocab_progress");
+  }
+  saveStore();
+}
+const saveProgress = () => saveStore();
+const prog = u => progress[u._id] || (progress[u._id] = {});
+/* ---------- tài khoản admin ----------
+   Đăng nhập tên "admin" + mật khẩu ADMIN_PASS. Admin: không chịu khóa unit /
+   practice nào, xem & cập nhật được dữ liệu của mọi học viên, thấy cụm SQLite.
+   Phiên admin chỉ giữ trong tab hiện tại (sessionStorage) — mở lại app phải
+   nhập mật khẩu lại. */
+const ADMIN_NAME = "admin";
+const ADMIN_PASS = "dinob123";   // đổi mật khẩu admin ở đây
+const isAdmin = () => store.current === ADMIN_NAME && sessionStorage.getItem("dinob_admin") === "1";
+const nameIcon = n => (n === ADMIN_NAME ? "👑 " : "👤 ") + n;
+/* unit được mở khi: là unit đầu, hoặc unit ngay trước nó đã hoàn thành bài tập (p.done) */
+function unitUnlocked(i) {
+  if (isAdmin()) return true;
+  if (i === 0) return true;
+  const p = progress[ALL_UNITS[i - 1]._id];
+  return !!(p && p.done);
+}
+
+/* ---------- hiển thị ---------- */
+let idx = 0;
+const $ = id => document.getElementById(id);
+
+/* nạp một unit: cập nhật banner, danh sách từ, word picker rồi render */
+function loadUnit(i) {
+  unitIdx = i;
+  const u = ALL_UNITS[i];
+  $("reviewBadge").hidden = true;   // thoát chế độ ôn tập nếu đang bật
+  $("bookSel").value = u.book;
+  ALL_WORDS = [...u.words, ...customWords];
+  /* bù các trường còn thiếu (keywords/img/ipa) cho danh sách tạo từ bản cũ */
+  let dirty = false;
+  ALL_WORDS.forEach(w => {
+    try {
+      const miss = !(w.keywords || []).length || (w.examples || []).some(e => e.text && !e.emoji);
+      if (miss) { autoFill(w); dirty = true; }
+    } catch (e) {}
+  });
+  if (dirty) {
+    localStorage.setItem("vocab_custom_units", JSON.stringify(customUnits));
+    localStorage.setItem("vocab_custom_words", JSON.stringify(customWords));
+  }
+  enrichIpa(ALL_WORDS, () => {
+    localStorage.setItem("vocab_custom_units", JSON.stringify(customUnits));
+    localStorage.setItem("vocab_custom_words", JSON.stringify(customWords));
+  });
+  buildUnitPicker();   // dropdown unit chỉ liệt kê bộ sách đang xem
+  buildPicker();
+  idx = 0;
+  render();
+}
+
+/* Bố cục cố định 2 hàng: hàng 1 chỉ chứa từ vựng (không có gì ngang hàng),
+   hàng 2 = IPA/nghĩa/keywords | Example 1 | Example 2 */
+
+function highlight(text, word) {
+  // [word] -> <span class="hl">word</span>
+  return text.replace(/\[([^\]]+)\]/g, (_, w) => `<span class="hl">${w}</span>`);
+}
+
+/* Ảnh minh họa = file người dùng tải lên (IndexedDB) hoặc đường dẫn ghi sẵn
+   trong trường img (tên file/URL/data:). Không còn gọi AI tạo ảnh. */
+const stripBrackets = t => (t || "").replace(/[\[\]]/g, "");
+function renderImage(wrap, img, key) {
+  if (!img) { wrap.innerHTML = ""; return; }
+  const bubble = img.quote ? `<div class="bubble">${img.quote}</div>` : "";
+  const fallback = () => {
+    wrap.innerHTML = `<div class="img-fallback">${img.emoji || "🖼️"}</div>${bubble}`;
+    fitCard();
+  };
+  const showEl = el => {
+    wrap.innerHTML = ""; wrap.appendChild(el);
+    wrap.insertAdjacentHTML("beforeend", bubble);
+    fitCard();
+  };
+  const showBlob = blob => {
+    const el = new Image(); el.className = "ex-img";
+    el.onload = () => showEl(el); el.src = URL.createObjectURL(blob);
+  };
+  const src = (img.img || "").trim();
+  if (src.startsWith("idb:")) {          // ảnh tải lên trong phần sửa unit
+    const b = imgCache[src];
+    if (b) { showBlob(b); return; }
+    idbGet(src).then(blob => {
+      if (blob) { imgCache[src] = blob; showBlob(blob); } else fallback();
+    });
+    return;
+  }
+  if (src) {   // đường dẫn ghi sẵn: tên file cạnh html / URL / data:
+    const el = new Image();
+    el.className = "ex-img"; el.alt = "minh họa";
+    el.onload = () => showEl(el);
+    el.onerror = fallback;
+    el.src = src;
+    return;
+  }
+  if (key) idbGet(key).then(blob => {   // ảnh tải lên theo key cũ (tương thích)
+    if (blob) { imgCache[key] = blob; showBlob(blob); } else fallback();
+  });
+  else fallback();
+}
+
+/* Tự co nội dung khi tràn khung 16:9 — zoom các zone, giữ nguyên khung ngoài */
+function fitCard() {
+  const card = $("card");
+  const zones = card.children;
+  for (const z of zones) z.style.zoom = "";
+  let z = 1;
+  while (z > 0.5 &&
+        (card.scrollHeight > card.clientHeight + 2 ||
+         card.scrollWidth  > card.clientWidth  + 2)) {
+    z -= 0.05;
+    for (const zone of zones) zone.style.zoom = z;
+  }
+}
+
+function render() {
+  const w = ALL_WORDS[idx];
+  if (!w) {   // unit trống
+    $("wordNum").textContent = ""; $("wordText").textContent = "—";
+    $("ipaText").textContent = ""; $("meanWord").textContent = "…";
+    $("meaningSign").innerHTML = "Danh sách trống — dùng nút ➕ Thêm từ để bắt đầu!";
+    $("keywords").innerHTML = "";
+    $("ex1Label").textContent = ""; $("ex1Sign").innerHTML = "";
+    $("img1Wrap").innerHTML = "";
+    $("counter").textContent = "0 / 0";
+    return;
+  }
+
+  $("wordNum").textContent = (idx + 1) + ".";
+  $("wordText").textContent = w.word;
+  $("ipaText").textContent = w.ipa || "";
+  $("meanWord").textContent = w.word;
+  $("meaningSign").innerHTML = w.meaning;
+  $("keywords").innerHTML = (w.keywords || []).map((k, i) =>
+    `<span class="${k === "and" ? "and" : ""}">${k}</span>`
+  ).join("<br>");
+  const exs = w.examples || [];
+  $("ex1Label").textContent = exs[0] ? "Example" : "";
+  $("ex1Sign").innerHTML = exs[0] ? highlight(exs[0].text, w.word) : "";
+  const base = `${ALL_UNITS[unitIdx]._id}|${w.word}`;
+  renderImage($("img1Wrap"), exs[0], base + "|0");
+  $("counter").textContent = `${idx + 1} / ${ALL_WORDS.length}`;
+  $("wordPicker").value = String(idx);
+  fitCard();
+}
+
+function speakText(t) {
+  const u = new SpeechSynthesisUtterance(t);
+  u.lang = "en-US"; u.rate = 0.68;   // chậm hơn ~20% so với trước
+  speechSynthesis.cancel(); speechSynthesis.speak(u);
+}
+function speak() {
+  if (ALL_WORDS.length) speakText(ALL_WORDS[idx].word);
+}
+
+/* ---------- điều khiển ---------- */
+$("prevBtn").onclick = () => { if (!ALL_WORDS.length) return; idx = (idx - 1 + ALL_WORDS.length) % ALL_WORDS.length; render(); };
+$("nextBtn").onclick = () => { if (!ALL_WORDS.length) return; idx = (idx + 1) % ALL_WORDS.length; render(); };
+$("shuffleBtn").onclick = () => { if (!ALL_WORDS.length) return; idx = Math.floor(Math.random() * ALL_WORDS.length); render(); };
+$("speakBtn").onclick = speak;
+window.addEventListener("resize", fitCard);
+document.addEventListener("keydown", e => {
+  const t = e.target;
+  if (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable) return;
+  if (e.key === "ArrowRight") $("nextBtn").click();
+  if (e.key === "ArrowLeft") $("prevBtn").click();
+  if (e.key === " ") { e.preventDefault(); speak(); }
+});
+
+const picker = $("wordPicker");
+function buildPicker() {
+  picker.innerHTML = "";
+  ALL_WORDS.forEach((w, i) => {
+    const o = document.createElement("option");
+    o.value = i; o.textContent = `${i + 1}. ${w.word}`;
+    picker.appendChild(o);
+  });
+}
+picker.onchange = () => { idx = +picker.value; render(); };
+
+/* ---------- dropdown chọn unit (gom nhóm theo bộ sách) ---------- */
+const unitPicker = $("unitPicker");
+function buildUnitPicker() {
+  const book = ALL_UNITS[unitIdx] && ALL_UNITS[unitIdx].book;   // chỉ unit của bộ đang xem
+  const bs = $("bookSel");
+  bs.innerHTML = [...new Set(ALL_UNITS.map(u => u.book))].map(b =>
+    `<option value="${b.replace(/"/g, "&quot;")}"${b === book ? " selected" : ""}>📖 ${b}</option>`).join("");
+  unitPicker.innerHTML = "";
+  ALL_UNITS.forEach((u, i) => {
+    if (book && u.book !== book) return;
+    const o = document.createElement("option");
+    o.value = i;
+    const p = progress[u._id];
+    o.textContent = `Unit ${u.unit} — ${u.topic}` + (p && p.done ? " ✅" : "") +
+      (!unitUnlocked(i) ? " 🔒" : "");
+    o.disabled = u.words.length === 0 || !unitUnlocked(i);
+    unitPicker.appendChild(o);
+  });
+  unitPicker.value = String(unitIdx);
+}
+unitPicker.onchange = () => loadUnit(+unitPicker.value);
+
+/* ---------- trang chủ DinoB Lab + danh sách bộ sách ---------- */
+function openHome() {
+  $("homeUser").textContent = store.current ? nameIcon(store.current) : "";
+  $("homePhoto").src = (store.users[store.current] || {}).photo || "dinob.png";
+  $("dbTools").hidden = !isAdmin();   // cụm SQLite chỉ dành cho admin
+  $("homeScreen").classList.add("open");
+}
+$("homeBtn").onclick = openHome;
+$("unitsBtn").onclick = () => {   // về danh sách unit của bộ sách đang học
+  buildUnitScreenList(ALL_UNITS[unitIdx] && ALL_UNITS[unitIdx].book);
+  $("unitScreen").classList.add("open");
+};
+/* nút 🏠 nổi — đóng mọi màn hình rồi về trang chủ; tự ẩn ở trang chủ/đăng nhập */
+const homeFloat = $("homeFloat");
+homeFloat.onclick = () => {
+  document.querySelectorAll(".screen.open").forEach(s => s.classList.remove("open"));
+  openHome();
+};
+new MutationObserver(() => {
+  const open = [...document.querySelectorAll(".screen.open")].map(s => s.id);
+  homeFloat.style.display =
+    open.length && !open.includes("homeScreen") && !open.includes("loginScreen") ? "block" : "none";
+}).observe(document.body, { subtree: true, attributes: true, attributeFilter: ["class"] });
+$("homeLogin").onclick = () => { renderLogin(); $("loginScreen").classList.add("open"); };
+$("engBtn").onclick = () => $("engMenu").classList.toggle("open");
+document.querySelectorAll("[data-subject]").forEach(b => b.onclick = () => {
+  $("engMenu").classList.remove("open");
+  if (b.dataset.subject === "VOCABULARY") {
+    $("homeScreen").classList.remove("open");
+    openBooks();
+  } else if (b.dataset.subject === "BIO") {
+    $("homeScreen").classList.remove("open");
+    refreshBioPhoto();
+    $("bioScreen").classList.add("open");
+  } else if (b.dataset.subject === "REPORT") {
+    $("homeScreen").classList.remove("open");
+    repWeek = 0;   // mở báo cáo luôn về tuần hiện tại
+    renderReport();
+    $("reportScreen").classList.add("open");
+  } else if (MATERIALS[b.dataset.subject]) {
+    $("homeScreen").classList.remove("open");
+    openMaterials(b.dataset.subject);
+  } else {
+    alert("Môn " + b.dataset.subject + " sắp ra mắt!");
+  }
+});
+$("bioBack").onclick = () => { $("bioScreen").classList.remove("open"); openHome(); };
+function refreshBioPhoto() {
+  $("bioPhoto").src = (store.users[store.current] || {}).photo || "dinob.png";
+}
+$("bioPhoto").onclick = () => $("bioPhotoInput").click();
+$("bioPhotoInput").onchange = e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    (store.users[store.current] ||= {}).photo = r.result;
+    saveStore(); refreshBioPhoto();
+  };
+  r.readAsDataURL(f);
+  e.target.value = "";
+};
+
+/* ---------- báo cáo học tập tuần ---------- */
+let repWeek = 0;   // 0 = tuần hiện tại, -1 = tuần trước... (◀ ▶ trong báo cáo)
+function weekStart(off = repWeek) {   // 00:00 thứ Hai của tuần (off tuần tính từ tuần này)
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - (d.getDay() + 6) % 7 + off * 7);
+  return d.getTime();
+}
+const fmtDate = t => new Date(t).toLocaleDateString("vi-VN");
+const CIRCLED = ["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩"];
+let reportUser = null;   // admin đang xem/cập nhật dữ liệu của học viên nào
+function getPlan(user) {
+  const u = store.users[user || store.current] || (store.users[user || store.current] = {});
+  const key = new Date(weekStart()).toISOString().slice(0, 10); // tuần hiện tại
+  u.plans = u.plans || {};
+  return u.plans[key] || (u.plans[key] = { text: "", checks: {} });
+}
+function parsePlan(text) {   // dòng thường = tên mục, dòng "- " = việc cần tick
+  const secs = []; let cur = null;
+  (text || "").split(/\n/).map(l => l.trim()).filter(Boolean).forEach(l => {
+    if (l.startsWith("-")) {
+      if (!cur) { cur = { title: "", items: [] }; secs.push(cur); }
+      cur.items.push(l.replace(/^-\s*/, ""));
+    } else { cur = { title: l, items: [] }; secs.push(cur); }
+  });
+  return secs;
+}
+function renderPlan(user) {
+  const plan = getPlan(user);
+  const ws = new Date(weekStart()), we = new Date(weekStart() + 6 * 864e5);
+  $("planWeek").textContent = `Tuần ${ws.getDate()}/${ws.getMonth()+1}/${ws.getFullYear()} → ${we.getDate()}/${we.getMonth()+1}/${we.getFullYear()}`;
+  let total = 0, done = 0;
+  $("planList").innerHTML = parsePlan(plan.text).map((s, i) => {
+    const items = s.items.map(t => {
+      const key = s.title + "|" + t;
+      const ok = !!plan.checks[key];
+      total++; if (ok) done++;
+      return `<div class="plan-item${ok ? " done" : ""}" data-key="${key.replace(/"/g, "&quot;")}">
+        <span class="plan-box">${ok ? "✔" : ""}</span><span class="plan-txt">${t}</span></div>`;
+    }).join("");
+    return `<div class="plan-sec"><span class="plan-num">${CIRCLED[i] || (i+1) + "."}</span><b>${s.title}</b>${items}</div>`;
+  }).join("") || '<div class="hint">Chưa có kế hoạch tuần này — bấm ✏️ Sửa kế hoạch để nhập.</div>';
+  document.querySelectorAll(".plan-item").forEach(el => el.onclick = () => {
+    const p = getPlan(user);
+    const k = el.dataset.key;
+    p.checks[k] = !p.checks[k];
+    if (!p.checks[k]) delete p.checks[k];
+    saveStore(); renderReport();
+  });
+  return { total, done };
+}
+function renderReport() {
+  if (!reportUser || !store.users[reportUser]) reportUser = store.current;
+  const u = store.users[reportUser] || {};
+  const ws = weekStart();
+  const sel = $("repUser");
+  $("repUserRow").hidden = !isAdmin();
+  if (isAdmin()) {   // admin chọn học viên để xem / cập nhật dữ liệu
+    sel.innerHTML = Object.keys(store.users).map(n =>
+      `<option value="${n}"${n === reportUser ? " selected" : ""}>${nameIcon(n)}</option>`).join("");
+    sel.onchange = () => { reportUser = sel.value; renderReport(); };
+  }
+  $("repTitle").textContent = `📊 Báo cáo học tập${repWeek === 0 ? " — tuần này" : repWeek === -1 ? " — tuần trước" : repWeek < 0 ? ` — cách ${-repWeek} tuần` : ` — sau ${repWeek} tuần`}`;
+  $("planEditor").style.display = "none";
+  $("planText").value = getPlan(reportUser).text;
+  const plan = renderPlan(reportUser);
+  let doneWeek = 0, videoWeek = 0, wordsWeek = 0, rows = [];
+  ALL_UNITS.forEach(un => {
+    const p = (u.progress || {})[un._id];
+    if (!p) return;
+    const parts = [];
+    if (p.q1 != null) parts.push(`Quiz 1: ${p.q1}%`);
+    if (p.q2 != null) parts.push(`Quiz 2: ${p.q2}%`);
+    if (p.hw != null) parts.push(`Bài tập: ${p.hw}%`);
+    const we2 = ws + 7 * 864e5;   // giới hạn trong tuần đang xem
+    const doneThisWeek = p.doneAt && p.doneAt >= ws && p.doneAt < we2;
+    if (doneThisWeek) { doneWeek++; wordsWeek += un.words.length; }
+    if (p.p1At >= ws && p.p1At < we2) videoWeek++;
+    if (parts.length || p.done) rows.push(
+      `<div class="rep-row">Unit ${un.unit} — <b>${un.topic}</b>: ${parts.join(" · ") || "—"}
+       ${p.done ? " ✅" + (p.doneAt ? ` xong ${fmtDate(p.doneAt)}` : "") : " ⏳"}</div>`);
+  });
+  const pctG = plan.total ? Math.round(plan.done / plan.total * 100) : 0;
+  $("repFill").style.width = pctG + "%";
+  $("repFillText").textContent = plan.total
+    ? `${plan.done}/${plan.total} việc trong kế hoạch · ${pctG}%`
+    : "Chưa có kế hoạch tuần này";
+  $("repDetail").innerHTML = rows.length ? rows.join("") : '<div class="hint">Chưa có hoạt động nào.</div>';
+  const totalDone = ALL_UNITS.filter(un => (u.progress || {})[un._id]?.done).length;
+  $("repSummary").innerHTML = `
+    <p>☑️ Việc đã làm xong trong kế hoạch tuần: <b>${plan.done}</b> / ${plan.total}</p>
+    <p>✅ Unit hoàn thành trong tuần: <b>${doneWeek}</b></p>
+    <p>🎥 Video đọc từ vựng đã quay trong tuần: <b>${videoWeek}</b></p>
+    <p>📚 Từ vựng đã học xong trong tuần: <b>${wordsWeek}</b> từ</p>
+    <p>🏆 Tổng unit đã hoàn thành từ trước đến nay: <b>${totalDone}</b> / ${ALL_UNITS.length}</p>
+    <p>${plan.total && plan.done >= plan.total ? "🎉 Hoàn thành hết kế hoạch tuần — giỏi lắm!" : plan.total ? "💪 Cố thêm chút nữa là xong kế hoạch tuần!" : "🌱 Đặt kế hoạch tuần để theo dõi tiến độ nhé!"}</p>`;
+}
+$("planEdit").onclick = () => {
+  const ed = $("planEditor");
+  ed.style.display = ed.style.display === "none" ? "block" : "none";
+};
+$("planSave").onclick = () => {
+  getPlan(reportUser).text = $("planText").value;
+  saveStore();
+  renderReport();
+};
+$("wkPrev").onclick = () => { repWeek--; renderReport(); };   // xem tuần cũ
+$("wkNext").onclick = () => { repWeek++; renderReport(); };   // tuần sau / soạn trước kế hoạch
+$("reportBack").onclick = () => { $("reportScreen").classList.remove("open"); openHome(); };
+
+/* ---------- học liệu theo môn (LISTENING-SPEAKING / READING / WRITING / GRAMMAR) ----------
+   localStorage["dinob_materials"] = { "<MÔN>": [ {name, items:[{t, link}]} ] } — chung mọi học viên.
+   Tiến độ từng bài lưu theo học viên: user.mat["<môn>|<bộ>|<bài>"] = {v, h, vAt, hAt}. */
+let MATERIALS = null;
+try { MATERIALS = JSON.parse(localStorage.getItem("dinob_materials")); } catch (e) {}
+if (!MATERIALS) {
+  MATERIALS = {
+    "LISTENING - SPEAKING": [{ name: "Super Simple Songs", items: [{ t: "Hello Song", link: "" }] }],
+    "READING": [{ name: "Reading A-Z", items: [
+      { t: "At school", link: "" }, { t: "My big brother", link: "" },
+      { t: "Getting ready", link: "" }, { t: "Play and ride", link: "" }, { t: "My bear", link: "" }] }],
+    "WRITING": [{ name: "My Journal", items: [{ t: "Viết nhật ký 5 câu về ngày hôm nay", link: "" }] }],
+    "GRAMMAR": [{ name: "Grammar basics", items: [{ t: "Động từ To be & thì hiện tại đơn", link: "" }] }],
+  };
+  saveMaterials();
+}
+function saveMaterials() { localStorage.setItem("dinob_materials", JSON.stringify(MATERIALS)); }
+
+let matSub = null, matColl = null;
+function matProg() {
+  const u = store.users[store.current] || (store.users[store.current] = {});
+  return u.mat || (u.mat = {});
+}
+function openMaterials(sub) {
+  matSub = sub; matColl = null;
+  $("matTitle").textContent = "📚 " + sub;
+  renderMatList();
+  $("matScreen").classList.add("open");
+}
+function renderMatList() {
+  const cols = MATERIALS[matSub] || (MATERIALS[matSub] = []);
+  const mp = matProg(), adm = isAdmin();
+  $("matAddRow").hidden = !adm;   // chỉ admin thêm/xóa học liệu
+  $("matList").innerHTML = cols.map((c, i) => {
+    const done = c.items.filter((_, j) => mp[matSub + "|" + i + "|" + j]?.h).length;
+    return `<div class="mat-row">
+      <button class="book-card mat-open" data-i="${i}">📂 ${c.name}<small>${c.items.length} mục · ${done}/${c.items.length} bài tập xong</small></button>
+      ${adm ? `<button class="user-del" data-del="${i}" title="Xóa bộ này">🗑</button>` : ""}
+    </div>`;
+  }).join("") || '<div class="hint">Chưa có học liệu' + (adm ? ' — thêm bộ mới ở dưới.' : '.</div>');
+  document.querySelectorAll(".mat-open").forEach(b => b.onclick = () => openMatItems(+b.dataset.i));
+  document.querySelectorAll("[data-del]").forEach(b => b.onclick = () => {
+    if (confirm("Xóa bộ học liệu này và mọi bài bên trong?")) {
+      MATERIALS[matSub].splice(+b.dataset.del, 1); saveMaterials(); renderMatList();
+    }
+  });
+}
+function openMatItems(i) {
+  matColl = i;
+  $("matItemTitle").textContent = "📂 " + matSub + " — " + MATERIALS[matSub][i].name;
+  renderMatItems();
+  $("matScreen").classList.remove("open");
+  $("matItemScreen").classList.add("open");
+}
+function renderMatItems() {
+  const c = MATERIALS[matSub][matColl], mp = matProg(), adm = isAdmin();
+  $("matItemAddRow").hidden = !adm;
+  $("matItemList").innerHTML = c.items.map((it, j) => {
+    const pr = mp[matSub + "|" + matColl + "|" + j] || {};
+    return `<div class="mat-row mat-item">
+      <span class="mat-name">${j + 1}. ${it.t}</span>
+      ${it.link ? `<a class="nav-btn" href="${it.link}" target="_blank" style="text-decoration:none">🔗 Mở</a>` : ""}
+      <button class="quiz-btn mat-act" data-act="v" data-j="${j}">${pr.v ? "✅" : "🎥"} Quay video</button>
+      ${pr.v ? `<button class="quiz-btn mat-act" data-act="play" data-j="${j}" title="Xem lại video đã quay">🎬</button>` : ""}
+      <button class="quiz-btn mat-act" data-act="h" data-j="${j}">${pr.h ? "✅" : "📝"} Bài tập</button>
+      ${adm ? `<button class="user-del" data-di="${j}" title="Xóa bài này">🗑</button>` : ""}
+    </div>`;
+  }).join("") || '<div class="hint">Chưa có bài nào' + (adm ? ' — thêm ở dưới.' : '.</div>');
+  document.querySelectorAll(".mat-act").forEach(b => b.onclick = () => matAction(+b.dataset.j, b.dataset.act));
+  document.querySelectorAll("[data-di]").forEach(b => b.onclick = () => {
+    if (confirm("Xóa bài này?")) {
+      MATERIALS[matSub][matColl].items.splice(+b.dataset.di, 1);
+      saveMaterials(); renderMatItems();
+    }
+  });
+}
+function matAction(j, act) {
+  const key = matSub + "|" + matColl + "|" + j;
+  const mp = matProg();
+  const pr = mp[key] || (mp[key] = {});
+  if (act === "play") {   // xem lại video đã quay của bài này
+    playSaved("mat:" + matSub + "|" + matColl + "|" + j);
+    return;
+  }
+  if (act === "v") {   // quay video: xong thì đánh dấu + quay lại danh sách bài
+    recCtx = "mat:" + matSub + "|" + matColl + "|" + j;
+    recReturn = "matItemScreen";
+    onRecDone = () => { pr.v = true; pr.vAt = Date.now(); saveStore(); renderMatItems(); };
+    $("matItemScreen").classList.remove("open");
+    $("recBar").hidden = false;
+    (async () => { if (!recStream) await startCam(); if (recStream) beginRec(); })();
+  } else {           // bài tập: mở link nếu có + tick hoàn thành
+    const it = MATERIALS[matSub][matColl].items[j];
+    if (it.link && !pr.h) window.open(it.link, "_blank");
+    pr.h = !pr.h;
+    if (pr.h) pr.hAt = Date.now(); else delete pr.h;
+    saveStore(); renderMatItems();
+  }
+}
+$("matAdd").onclick = () => {
+  if (!isAdmin()) { alert("Chỉ tài khoản admin mới được thêm học liệu!"); return; }
+  const name = $("matNewName").value.trim();
+  if (!name) { alert("Nhập tên bộ học liệu!"); return; }
+  MATERIALS[matSub].push({ name, items: [] });
+  $("matNewName").value = "";
+  saveMaterials(); renderMatList();
+};
+$("matItemAdd").onclick = () => {
+  if (!isAdmin()) { alert("Chỉ tài khoản admin mới được thêm học liệu!"); return; }
+  const t = $("matNewItem").value.trim();
+  if (!t) { alert("Nhập tên bài / video!"); return; }
+  MATERIALS[matSub][matColl].items.push({ t, link: $("matNewLink").value.trim() });
+  $("matNewItem").value = ""; $("matNewLink").value = "";
+  saveMaterials(); renderMatItems();
+};
+$("matBack").onclick = () => { $("matScreen").classList.remove("open"); openHome(); };
+$("matItemBack").onclick = () => { $("matItemScreen").classList.remove("open"); openMaterials(matSub); };
+function openBooks() {
+  const books = {};
+  ALL_UNITS.forEach(u => (books[u.book] = books[u.book] || []).push(u));
+  const list = $("bookList");
+  list.innerHTML = "";
+  Object.entries(books).forEach(([b, us]) => {
+    const row = document.createElement("div");
+    row.className = "mat-row";
+    const btn = document.createElement("button");
+    btn.className = "book-card";
+    btn.innerHTML = `📖 ${b}
+       <small>${us.length} unit · ${us.reduce((s, u) => s + u.words.length, 0)} từ</small>`;
+    btn.onclick = () => {
+      $("booksScreen").classList.remove("open");
+      buildUnitScreenList(b);
+      $("unitScreen").classList.add("open");
+    };
+    row.appendChild(btn);
+    if (isAdmin()) {   // chỉ admin đổi tên bộ sách
+      const ed = document.createElement("button");
+      ed.className = "unit-act"; ed.textContent = "✏️"; ed.title = "Đổi tên bộ sách";
+      ed.onclick = () => renameBook(b);
+      row.appendChild(ed);
+    }
+    list.appendChild(row);
+  });
+  $("newBookBtn").hidden = !isAdmin();   // chỉ admin thêm bộ sách
+  $("booksScreen").classList.add("open");
+}
+/* đổi tên bộ sách: cập nhật book của mọi unit thuộc bộ (unit tự tạo sửa trực tiếp,
+   unit gốc trong file ghi vào unitOverrides — file không đổi) */
+function renameBook(old) {
+  const name = prompt(`Đổi tên bộ sách "${old}" thành:`, old);
+  if (!name || !name.trim() || name.trim() === old) return;
+  const nn = name.trim();
+  ALL_UNITS.forEach(u => {
+    if (u.book !== old) return;
+    if (u._id.startsWith("c")) customUnits[+u._id.slice(1)].book = nn;
+    else unitOverrides[u._id] = { ...(unitOverrides[u._id] || {}), book: nn };
+  });
+  localStorage.setItem("vocab_custom_units", JSON.stringify(customUnits));
+  localStorage.setItem("vocab_unit_overrides", JSON.stringify(unitOverrides));
+  rebuildUnits(); buildUnitPicker(); openBooks();
+}
+$("booksBack").onclick = () => { $("booksScreen").classList.remove("open"); openHome(); };
+$("newBookBtn").onclick = () => {
+  if (!isAdmin()) { alert("Chỉ tài khoản admin mới được thêm bộ sách!"); return; }
+  const name = prompt("Tên bộ sách mới (VD: Essential Vocabulary In Context 2):");
+  if (!name || !name.trim()) return;
+  fillBookList();
+  unitBookFilter = name.trim();          // bộ sách đang thao tác
+  $("fBook").value = unitBookFilter;     // điền sẵn vào form tạo unit
+  $("booksScreen").classList.remove("open");
+  $("listScreen").classList.add("open"); // tạo unit đầu tiên của bộ sách
+  $("fUnit").focus();
+};
+
+/* ---------- màn hình danh sách unit (bấm vào tên sách trên banner) ---------- */
+let unitBookFilter = null;
+function buildUnitScreenList(bookFilter) {
+  unitBookFilter = bookFilter || null;
+  $("newListBtn").hidden = !isAdmin();   // tạo danh sách chỉ dành cho admin
+  const list = $("unitList");
+  list.innerHTML = "";
+  let lastBook = null, grp = null;
+  ALL_UNITS.forEach((u, i) => {
+    if (unitBookFilter && u.book !== unitBookFilter) return;
+    if (u.book !== lastBook) {
+      lastBook = u.book;
+      const n = ALL_UNITS.filter(x => x.book === u.book).length;
+      const h = document.createElement("div");
+      h.className = "book-group";   // gom unit theo bộ sách — mặc định thu gọn
+      h.innerHTML = `<span class="bg-arrow">▶</span> 📖 ${u.book} <span class="bg-count">${n} unit</span>`;
+      grp = document.createElement("div");
+      grp.className = "book-grp closed";
+      h.onclick = () => {
+        const closed = grp.classList.toggle("closed");
+        h.classList.toggle("open", !closed);
+      };
+      list.append(h, grp);
+    }
+    const row = document.createElement("div");
+    row.className = "unit-item" + (i === unitIdx ? " active" : "")
+                  + (u.words.length ? "" : " empty");
+    const open = document.createElement("button");
+    open.className = "unit-open";
+    const p = progress[u._id];
+    const badge = !u.words.length ? "" :
+      p && p.done ? " ✅" : !unitUnlocked(i) ? " 🔒" : "";
+    const score = p && (p.q1 != null || p.q2 != null)
+      ? ` <span class="unit-prog">Q1 ${p.q1 ?? "—"}% · Q2 ${p.q2 ?? "—"}%</span>` : "";
+    open.innerHTML = `Unit ${u.unit} — <b>${u.topic}</b> · ${u.words.length} từ${badge}${score}`;
+    open.disabled = u.words.length === 0 || !unitUnlocked(i);
+    open.onclick = () => { loadUnit(i); $("unitScreen").classList.remove("open"); };
+    row.appendChild(open);
+    if (isAdmin()) {   // chỉ admin được sửa / xóa dữ liệu
+      const ed = document.createElement("button");
+      ed.className = "unit-act"; ed.textContent = "✏️"; ed.title = "Sửa unit";
+      ed.onclick = () => openEdit(i);
+      const del = document.createElement("button");
+      del.className = "unit-act"; del.textContent = "🗑"; del.title = "Xóa unit";
+      del.onclick = () => deleteUnit(i);
+      row.append(ed, del);
+    }
+    grp.appendChild(row);
+  });
+}
+$("bookSel").onchange = () => {   // đổi bộ sách ngay trên thẻ — vào unit mở đầu tiên của bộ
+  const i = ALL_UNITS.findIndex(u => u.book === $("bookSel").value &&
+    u.words.length && (isAdmin() || unitUnlocked(ALL_UNITS.indexOf(u))));
+  if (i < 0) {
+    alert("Bộ sách này chưa mở — hoàn thành hết unit trước đó nhé!");
+    $("bookSel").value = ALL_UNITS[unitIdx].book;
+    return;
+  }
+  loadUnit(i);
+};
+$("unitBack").onclick = () => {   // quay về màn hình Vocabulary (danh sách bộ sách)
+  $("unitScreen").classList.remove("open");
+  openBooks();
+};
+
+/* ---------- sửa / xóa unit ---------- */
+let editingId = null;
+function fillBookList() {
+  $("bookList").innerHTML = "";
+  [...new Set(ALL_UNITS.map(u => u.book))].forEach(b => {
+    const o = document.createElement("option");
+    o.value = b;
+    $("bookList").appendChild(o);
+  });
+}
+const escAttr = s => (s || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+function eWordHTML(w) {   // 1 thẻ sửa từ — mọi trường đều sửa được (1 ví dụ)
+  const e = ((w && w.examples) || [])[0] || {};
+  return `<div class="e-word">
+    <button class="e-wdel" title="Xóa từ này">🗑</button>
+    <div class="ew-head row">
+      <input class="ew-word" value="${escAttr(w?.word)}" placeholder="Từ vựng">
+      <input class="ew-ipa" value="${escAttr(w?.ipa)}" placeholder="/IPA/ — bỏ trống để tự tra">
+    </div>
+    <input class="ew-mean" value="${escAttr(w?.meaning)}" placeholder="Nghĩa tiếng Anh">
+    <input class="ew-kw" value="${escAttr((w?.keywords || []).join(", "))}" placeholder="Từ khóa xanh, cách nhau bởi dấu phẩy — bỏ trống để tự tạo">
+    <div class="e-ex">
+      <div class="e-ex-title">Ví dụ</div>
+      <input class="ew-ex0" value="${escAttr(e.text)}" placeholder="Câu ví dụ — [từ] để tô xanh">
+      <div class="e-imgrow">
+        <input class="ew-img0" value="${escAttr(e.img)}" placeholder="Ảnh minh họa — 📷 tải lên, hoặc ghi tên file/URL">
+        <button type="button" class="ew-up" data-k="0" title="Tải ảnh từ máy">📷</button>
+        <img class="ew-prev" alt="">
+      </div>
+      <input class="ew-q0" value="${escAttr(e.quote)}" placeholder="Lời thoại bong bóng (tùy chọn)">
+    </div>
+  </div>`;
+}
+/* Xem trước + tải ảnh lên trong thẻ sửa từ. Ảnh upload → IndexedDB, ô input
+   giữ tham chiếu "idb:<key>" nên dữ liệu đi cùng từ vựng (không phụ thuộc
+   thứ tự/đổi tên). */
+function ewImgPreview(input, prev) {
+  const v = input.value.trim();
+  if (!v) { prev.removeAttribute("src"); prev.style.display = "none"; return; }
+  prev.style.display = "";
+  if (v.startsWith("idb:")) {
+    const b = imgCache[v];
+    if (b) { prev.src = URL.createObjectURL(b); return; }
+    idbGet(v).then(bl => {
+      if (bl) { imgCache[v] = bl; prev.src = URL.createObjectURL(bl); }
+      else prev.style.display = "none";
+    });
+  } else prev.src = v;
+}
+function wireWordImgs(div) {
+  const input = div.querySelector(".ew-img0");
+  const prev  = div.querySelector(".ew-prev");
+  const btn   = div.querySelector('.ew-up[data-k="0"]');
+  if (!input || !prev || !btn) return;
+  input.oninput = () => ewImgPreview(input, prev);
+  btn.onclick = () => pickImage(f => {
+    const key = newImgKey();
+    idbPut(key, f); imgCache[key] = f;
+    input.value = key;
+    ewImgPreview(input, prev);
+  });
+  ewImgPreview(input, prev);
+}
+function renderEWords(words) {
+  $("eWords").innerHTML = words.map(eWordHTML).join("") ||
+    '<div class="hint">Chưa có từ nào — bấm ➕ Thêm từ.</div>';
+  document.querySelectorAll(".e-wdel").forEach(b => b.onclick = () =>
+    b.closest(".e-word").remove());
+  document.querySelectorAll("#eWords .e-word").forEach(wireWordImgs);
+}
+function openEdit(i) {
+  if (!isAdmin()) { alert("Chỉ tài khoản admin mới được chỉnh sửa dữ liệu!"); return; }
+  const u = ALL_UNITS[i];
+  editingId = u._id;
+  fillBookList();
+  $("eBook").value = u.book;
+  $("eUnit").value = u.unit;
+  $("eTopic").value = u.topic;
+  renderEWords(u.words || []);
+  $("editScreen").classList.add("open");
+}
+$("eAddWord").onclick = () => {
+  if ($("eWords").querySelector(".hint")) $("eWords").innerHTML = "";
+  $("eWords").insertAdjacentHTML("beforeend", eWordHTML(null));
+  const d = $("eWords").lastElementChild;
+  d.querySelector(".e-wdel").onclick = () => d.remove();
+  wireWordImgs(d);
+};
+$("editBack").onclick = () => $("editScreen").classList.remove("open");
+$("saveEdit").onclick = () => {
+  if (!isAdmin()) { alert("Chỉ tài khoản admin mới được chỉnh sửa dữ liệu!"); return; }
+  const book  = $("eBook").value.trim();
+  const unit  = $("eUnit").value.trim();
+  const topic = $("eTopic").value.trim();
+  if (!book || !unit || !topic) {
+    alert("Cần đủ: tên bộ sách, số unit, chủ đề!");
+    return;
+  }
+  // thu thập lại toàn bộ từ vựng từ các thẻ sửa
+  const words = [...$("eWords").querySelectorAll(".e-word")].map(div => {
+    const g = c => div.querySelector(c)?.value.trim() || "";
+    const exs = [];   // mỗi từ chỉ có 1 ví dụ
+    const t = g(".ew-ex0");
+    if (t) exs.push({ text: autoBracket(t, g(".ew-word")), img: g(".ew-img0"), quote: g(".ew-q0"), emoji: "🖼️" });
+    return { word: g(".ew-word"), ipa: g(".ew-ipa"), meaning: g(".ew-mean"),
+             keywords: g(".ew-kw").split(",").map(s => s.trim()).filter(Boolean),
+             examples: exs };
+  }).filter(w => w.word).map(autoFill);   // tự bù keywords/img/highlight còn thiếu
+  const fields = { book, unit: isNaN(+unit) ? unit : +unit, topic, words };
+  if (editingId.startsWith("b")) {
+    unitOverrides[editingId] = fields;   // unit gốc trong file -> lưu override (gồm cả words)
+    localStorage.setItem("vocab_unit_overrides", JSON.stringify(unitOverrides));
+  } else {
+    Object.assign(customUnits[+editingId.slice(1)], fields);
+    localStorage.setItem("vocab_custom_units", JSON.stringify(customUnits));
+  }
+  $("editScreen").classList.remove("open");
+  rebuildUnits(); buildUnitPicker(); buildUnitScreenList();
+  const ni = ALL_UNITS.findIndex(u => u._id === editingId);
+  if (ni >= 0) loadUnit(ni);
+  enrichIpa(words.filter(w => !w.ipa), () => {
+    localStorage.setItem("vocab_custom_units", JSON.stringify(customUnits));
+    localStorage.setItem("vocab_unit_overrides", JSON.stringify(unitOverrides));
+  });
+};
+function deleteUnit(i) {
+  if (!isAdmin()) { alert("Chỉ tài khoản admin mới được xóa dữ liệu!"); return; }
+  const u = ALL_UNITS[i];
+  const activeId = ALL_UNITS[unitIdx]?._id;
+  if (!confirm(`Xóa "Unit ${u.unit} — ${u.topic}"?`)) return;
+  if (u._id.startsWith("b")) {
+    hiddenUnits.push(u._id);   // unit gốc -> chỉ ẩn, file giữ nguyên
+    localStorage.setItem("vocab_hidden_units", JSON.stringify(hiddenUnits));
+  } else {
+    customUnits.splice(+u._id.slice(1), 1);
+    localStorage.setItem("vocab_custom_units", JSON.stringify(customUnits));
+  }
+  rebuildUnits(); buildUnitPicker(); buildUnitScreenList();
+  const ni = ALL_UNITS.findIndex(x => x._id === activeId);
+  loadUnit(ni >= 0 ? ni : 0);
+}
+
+/* ---------- parse danh sách từ dán từ AI ----------
+   Mẫu A: mỗi dòng "word | [IPA] | nghĩa | VD"
+   Mẫu B: "**word**" (hoặc "## word") + các dòng tiếp theo = [IPA]?, nghĩa, VD */
+function autoBracket(text, word) {
+  if (!text || text.includes("[")) return text;
+  const i = text.toLowerCase().indexOf(word.toLowerCase());
+  return i < 0 ? text
+    : text.slice(0, i) + "[" + text.slice(i, i + word.length) + "]" + text.slice(i + word.length);
+}
+/* Tự sinh các trường còn thiếu khi nhập danh sách:
+   - keywords: lấy 1–3 từ khóa nghĩa chính trong câu nghĩa (bỏ stopword), in hoa + "!"
+   - nghĩa: tự tô xanh <span class="hl"> chỗ chứa keyword
+   - img: prompt = câu ví dụ (bỏ ngoặc []) -> mỗi từ một tranh riêng
+   - ipa: fetch sau qua enrichIpa() */
+const STOPW = new Set(("a an the and or of to in on for with at by from your you yours his her " +
+  "its their our my this that these those is are was were be been it as very so not no do does " +
+  "did have has had someone something one who which what when where how").split(" "));
+function autoKeywords(meaning) {
+  const txt = (meaning || "").replace(/<[^>]+>/g, " ").replace(/[^\p{L}\p{N} '’-]/gu, " ");
+  const pick = txt.split(/\s+/).filter(t => t.length > 2 && !STOPW.has(t.toLowerCase())).slice(0, 3);
+  return (pick.length ? pick : [txt.split(/\s+/)[0] || "?"]).map(t => t.toUpperCase() + "!");
+}
+function autoHl(meaning, kws) {
+  if (!meaning || meaning.includes('class="hl"')) return meaning || "";
+  let out = meaning;
+  kws.forEach(k => {
+    const base = k.replace(/!$/, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    try {
+      out = out.replace(new RegExp(`\\b${base}\\b`, "i"), m => `<span class="hl">${m.toUpperCase()}</span>`);
+    } catch (e) {}
+  });
+  return out;
+}
+function autoFill(w) {
+  w.keywords = w.keywords || [];
+  w.examples = w.examples || [];
+  if (!w.keywords.length) w.keywords = autoKeywords(w.meaning);
+  w.meaning = autoHl(w.meaning, w.keywords);
+  (w.examples || []).forEach(e => {
+    // img để trống = người dùng tự tải ảnh lên (nút 📷) hoặc ghi đường dẫn file
+    if (!e.emoji) e.emoji = "🖼️";
+  });
+  return w;
+}
+async function fetchIpa(word) {   // IPA Mỹ từ từ điển miễn phí (cần internet)
+  const clean = w => w.toLowerCase().replace(/[^a-z'-]/g, "");
+  const one = async w => {
+    w = clean(w);
+    if (!w) return "";
+    try {
+      const r = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(w)}`);
+      const j = await r.json();
+      const p = j[0]?.phonetics?.find(x => x.text)?.text || j[0]?.phonetic || "";
+      return p.replace(/^\/+|\/+$/g, "");   // bỏ // ở 2 đầu
+    } catch (e) { return ""; }
+  };
+  const parts = word.split(/[\s]+/).filter(Boolean);
+  if (parts.length > 1) {   // từ ghép/cụm từ: tra từng từ rồi ghép lại
+    const ipaParts = (await Promise.all(parts.map(one))).filter(Boolean);
+    return ipaParts.length ? "/" + ipaParts.join(" ") + "/" : "";
+  }
+  const p = await one(word);
+  return p ? "/" + p + "/" : "";
+}
+/* bơm IPA cho các từ còn trống, lưu lại và vẽ lại thẻ nếu đang xem */
+async function enrichIpa(words, persist) {
+  for (const w of words) {
+    try {
+      if (w.ipa) continue;
+      w.ipa = await fetchIpa(w.word);
+      if (w.ipa && ALL_WORDS.includes(w) && ALL_WORDS[idx] === w) render();
+    } catch (e) {}
+  }
+  persist();
+}
+/* một đoạn "giống IPA" nếu bọc trong /../ hay [..] hoặc chứa ký tự IPA đặc trưng */
+const looksIpa = s => !!s && (/^[/[]/.test(s) || /[ˈˌːæɪʊəɛɔʃʒθðŋɜɒɑʌɹ]/.test(s));
+function makeWord(word, meaning, e1, ipa) {
+  const mk = t => t ? { text: autoBracket(t, word), img: "", quote: "", emoji: "🖼️" } : null;
+  return autoFill({ word, ipa: ipa || "", meaning, keywords: [],
+           examples: [mk(e1)].filter(Boolean) });
+}
+function parseWordList(text) {
+  const lines = text.split("\n").map(s => s.trim());
+  const isHead = l => /^\*\*.+\*\*$/.test(l) || /^#{1,3}\s/.test(l);
+  const words = [];
+  // Mẫu A: "word | [IPA] | nghĩa | VD" — cột IPA tùy chọn, tự nhận diện
+  for (const l of lines) {
+    if (!l || isHead(l) || !l.includes("|")) continue;
+    const seg = l.split("|").map(s => s.trim()).filter(Boolean);
+    if (seg.length < 2) continue;
+    if (/^word$/i.test(seg[0]) && /meaning|nghĩa/i.test(seg[1] || "")) continue;  // bỏ dòng tiêu đề
+    let ipa = "";
+    if (looksIpa(seg[1])) ipa = seg.splice(1, 1)[0];   // rút cột IPA ra khỏi seg
+    const [word, meaning, e1] = seg;   // các cột thừa sau VD bị bỏ
+    if (!word || !meaning) continue;
+    words.push(makeWord(word, meaning, e1, ipa));
+  }
+  if (words.length) return words;
+  // Mẫu B: dòng **word** rồi đến [IPA]? , nghĩa, VD
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^\*\*(.+?)\*\*\s*$/) || lines[i].match(/^#{1,3}\s+(.+)$/);
+    if (!m) continue;
+    const word = m[1].trim(), rest = [];
+    for (let j = i + 1; j < lines.length && rest.length < 3; j++) {
+      if (!lines[j]) continue;
+      if (isHead(lines[j])) break;
+      rest.push(lines[j]);
+    }
+    let ipa = "";
+    if (rest[0] && looksIpa(rest[0])) ipa = rest.shift();
+    if (word && rest[0]) words.push(makeWord(word, rest[0], rest[1], ipa));
+  }
+  return words;
+}
+
+/* ---------- OCR ảnh trang unit ----------
+   Đọc từng chữ kèm tọa độ -> tách nửa trái/phải trang, mỗi nửa đọc
+   từ trên xuống dưới -> mỗi hàng ghép thành "word | nghĩa | VD"
+   và đổ vào ô fWords để người dùng kiểm tra trước khi tạo. */
+/* lấy danh sách từ có bbox từ kết quả Tesseract — chịu được cả cấu trúc
+   data.lines, data.words phẳng, lẫn blocks > paragraphs > lines > words */
+function ocrWords(data) {
+  let W = [];
+  (data.lines || []).forEach(l => (l.words || []).forEach(w => W.push(w)));
+  if (!W.length && data.words && data.words[0] && data.words[0].bbox) W = data.words;
+  if (!W.length)
+    (data.blocks || []).forEach(b => (b.paragraphs || []).forEach(p =>
+      (p.lines || []).forEach(l => (l.words || []).forEach(w => W.push(w)))));
+  return W;
+}
+
+/* gom các dòng thành mục từ vựng: dòng chỉ 1-2 từ = từ mới, các dòng dài
+   phía sau ghép thành nghĩa -> xuất "từ | nghĩa". Dòng đã có "|" (bảng) giữ nguyên. */
+function pairEntries(lines) {
+  const isWord = s => /^[A-Za-z][A-Za-z'’\-() ]*$/.test(s) &&
+                      s.split(/\s+/).length <= 2 && s.length <= 20;
+  const skip = /^(unit\b|vocabulary|page\b)/i;
+  const out = [];
+  let cur = null;
+  const flush = () => {
+    if (cur) { out.push(cur.m ? `${cur.w} | ${cur.m}` : cur.w); cur = null; }
+  };
+  for (const l of lines) {
+    const t = l.trim();
+    if (!t) { flush(); continue; }
+    if (t.includes(" | ")) { flush(); out.push(t); continue; }   // hàng bảng giữ nguyên
+    if (skip.test(t)) continue;                                  // bỏ header/footer
+    if (isWord(t)) { flush(); cur = { w: t, m: "" }; }
+    else if (cur) cur.m = (cur.m ? cur.m + " " : "") + t;
+    else cur = { w: t, m: "" };
+  }
+  flush();
+  return out;
+}
+
+/* gom danh sách "từ" có tọa độ thành các dòng "word | nghĩa | VD"
+   — chia nửa trái/phải trang, mỗi nửa đọc từ trên xuống dưới */
+function wordsToLines(W) {
+  if (!W.length) return [];
+  const maxX = Math.max(...W.map(w => w.bbox.x1));
+  const avgH = W.reduce((s, w) => s + (w.bbox.y1 - w.bbox.y0), 0) / W.length;
+  const cx = w => (w.bbox.x0 + w.bbox.x1) / 2;
+  const cy = w => (w.bbox.y0 + w.bbox.y1) / 2;
+  const out = [];
+  for (const half of [W.filter(w => cx(w) < maxX / 2), W.filter(w => cx(w) >= maxX / 2)]) {
+    half.sort((a, b) => cy(a) - cy(b));
+    const rows = [];
+    for (const w of half) {
+      let row = rows.find(r => Math.abs(r.cy - cy(w)) < avgH * 0.7);
+      if (!row) rows.push(row = { cy: cy(w), ws: [] });
+      row.ws.push(w);
+    }
+    for (const r of rows) {
+      r.ws.sort((a, b) => a.bbox.x0 - b.bbox.x0);
+      const cells = [[]];
+      for (let k = 1; k < r.ws.length; k++) {
+        if (r.ws[k].bbox.x0 - r.ws[k - 1].bbox.x1 > avgH * 1.5) cells.push([]);
+        cells[cells.length - 1].push(r.ws[k]);
+      }
+      const line = cells.map(c => c.map(w => w.text).join(" ")).join(" | ");
+      if (line.trim()) out.push(line);
+    }
+  }
+  return out;
+}
+
+/* PDF: lấy text trực tiếp bằng pdf.js (getTextContent có tọa độ);
+   trang nào không có text (PDF scan) thì render ra canvas rồi OCR */
+async function pdfToLines(file, st) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+  const out = [];
+  for (let p = 1; p <= pdf.numPages; p++) {
+    st.textContent = `Đang đọc PDF — trang ${p}/${pdf.numPages}…`;
+    const page = await pdf.getPage(p);
+    const vp = page.getViewport({ scale: 1 });
+    const tc = await page.getTextContent();
+    let W = tc.items.filter(it => it.str.trim()).map(it => {
+      const x = it.transform[4];
+      const h = Math.abs(it.transform[0]) || it.height || 10;
+      const y = vp.height - it.transform[5] - h;   // đổi gốc y PDF (dưới-lên) sang trên-xuống
+      return { text: it.str, bbox: { x0: x, y0: y, x1: x + (it.width || it.str.length * h * .5), y1: y + h } };
+    });
+    if (!W.length) {   // trang scan -> render + OCR
+      if (typeof Tesseract === "undefined") continue;
+      const v = page.getViewport({ scale: 2 });
+      const c = document.createElement("canvas");
+      c.width = v.width; c.height = v.height;
+      await page.render({ canvasContext: c.getContext("2d"), viewport: v }).promise;
+      const { data } = await Tesseract.recognize(c, "eng");
+      W = ocrWords(data);
+      if (!W.length && data.text) out.push(...data.text.split("\n"));
+    }
+    out.push(...pairEntries(wordsToLines(W)));
+  }
+  return out;
+}
+
+$("fImage").onchange = async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const st = $("ocrStatus");
+  const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+  if (!isPdf && typeof Tesseract === "undefined") {
+    st.textContent = "Cần internet để tải thư viện OCR (tesseract.js).";
+    return;
+  }
+  if (isPdf && typeof pdfjsLib === "undefined") {
+    st.textContent = "Cần internet để tải thư viện đọc PDF (pdf.js).";
+    return;
+  }
+  st.textContent = isPdf ? "Đang đọc PDF…" : "Đang đọc ảnh… lần đầu sẽ tải model OCR vài giây.";
+  try {
+    let out;
+    if (isPdf) {
+      out = await pdfToLines(file, st);
+    } else {
+      const { data } = await Tesseract.recognize(file, "eng");
+      const W = ocrWords(data);
+      out = pairEntries(wordsToLines(W));
+      if (!out.length && data.text) out = data.text.split("\n").map(s => s.trim()).filter(Boolean);
+    }
+    if (out.length) {
+      $("fWords").value = out.join("\n");
+      st.textContent = "Đã đọc xong — hãy kiểm tra/sửa lại ô danh sách trước khi bấm Tạo.";
+    } else {
+      st.textContent = "Không ghép được hàng nào — thử file rõ nét hơn.";
+    }
+  } catch (err) {
+    st.textContent = "Đọc file thất bại: " + err.message;
+  }
+};
+
+/* ---------- tạo danh sách từ vựng mới (màn hình riêng) ---------- */
+$("newListBtn").onclick = () => {
+  if (!isAdmin()) { alert("Chỉ tài khoản admin mới được tạo danh sách!"); return; }
+  fillBookList();   // gợi ý các bộ sách đã có trong datalist
+  if (unitBookFilter) $("fBook").value = unitBookFilter;   // điền sẵn bộ sách đang xem
+  $("listScreen").classList.add("open");
+};
+$("listBack").onclick = () => $("listScreen").classList.remove("open");
+$("saveList").onclick = () => {
+  if (!isAdmin()) { alert("Chỉ tài khoản admin mới được tạo danh sách!"); return; }
+  const book  = $("fBook").value.trim();
+  const unit  = $("fUnit").value.trim();
+  const topic = $("fTopic").value.trim();
+  if (!book || !unit || !topic) {
+    alert("Cần đủ: tên bộ sách, số unit, chủ đề!");
+    return;
+  }
+  const raw = $("fWords").value.trim();
+  const words = raw ? parseWordList(raw) : [];
+  if (raw && !words.length) {
+    alert("Không đọc được danh sách — kiểm tra lại mẫu nhập (xem gợi ý trong ô)!");
+    return;
+  }
+  const u = { book, unit: isNaN(+unit) ? unit : +unit, topic, words };
+  customUnits.push(u);
+  const saveUnits = () => localStorage.setItem("vocab_custom_units", JSON.stringify(customUnits));
+  saveUnits();
+  rebuildUnits();
+  $("fBook").value = $("fUnit").value = $("fTopic").value = $("fWords").value = "";
+  $("listScreen").classList.remove("open");
+  $("unitScreen").classList.remove("open");    // đóng màn hình danh sách unit nếu đang mở
+  $("booksScreen").classList.remove("open");
+  buildUnitPicker();
+  loadUnit(ALL_UNITS.length - 1);   // chuyển thẳng sang danh sách vừa tạo
+  enrichIpa(words, saveUnits);      // tự tra phiên âm IPA rồi lưu lại
+};
+
+/* ---------- QUIZ: nghe->nghĩa, nghĩa->từ, rồi bài tập PDF ---------- */
+const shuffle = a => a.sort(() => Math.random() - .5);
+let quiz = null;
+
+$("quizBtn").onclick = () => {
+  const u = ALL_UNITS[unitIdx];
+  if (!u || !u.words.length) { alert("Unit này chưa có từ vựng!"); return; }
+  $("quizTitle").textContent = `Unit ${u.unit} — ${u.topic}`;
+  renderQuizHome();
+  $("quizScreen").classList.add("open");
+};
+$("recBtn").onclick = async () => {
+  const u = ALL_UNITS[unitIdx];
+  if (!u || !u.words.length) { alert("Unit này chưa có từ vựng!"); return; }
+  if (mediaRec && mediaRec.state === "recording") return;   // đang quay rồi
+  recCtx = "unit:" + u._id;
+  $("recBar").hidden = false;
+  if (!recStream) await startCam();
+  if (recStream) beginRec();   // một nút: bật camera + bắt đầu quay luôn
+};
+$("quizBack").onclick = () => {
+  stopCam();   // phòng trường hợp màn hình quay đang mở
+  $("quizScreen").classList.remove("open"); buildUnitPicker();
+};
+
+const wrongList = (p, mode) => p[mode + "Wrong"] || [];
+
+const escH = s => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;");
+function renderQuizHome() {
+  const u = ALL_UNITS[unitIdx], p = prog(u);
+  const q1ok = (p.q1 ?? 0) >= 80, q2ok = (p.q2 ?? 0) >= 80, quizDone = q1ok && q2ok;
+  const lock3 = !quizDone && !isAdmin();
+  const hwWrong = p.hwWrong || [];
+  const hasP3 = hwWrong.length > 0 || p.p3 != null;   // mở P3 khi P2 còn từ sai
+  $("quizProg").innerHTML =
+    `Quiz 1: ${p.q1 ?? "—"}% · Quiz 2: ${p.q2 ?? "—"}% · Bài tập: ${p.done ? "✅" : "chưa"}`
+    + (p.p1 ? ` <button class="quiz-btn" id="viewVid" style="width:auto;margin:0 6px;padding:4px 12px">🎬 Xem video đã quay</button>` : "");
+  const q1w = wrongList(p, "q1"), q2w = wrongList(p, "q2");
+  const allWrong = new Set([...q1w, ...q2w]);
+  $("quizBody").innerHTML = `
+    <div class="step">
+      <h3 class="step-head"><span class="caret">▾</span> Practice 1 · Quiz từ vựng ${quizDone ? "✅" : ""}</h3>
+      <div class="step-body">
+      <button class="quiz-btn" id="startQ1">▶ Quiz 1 — Nghe từ vựng, chọn nghĩa (${p.q1 ?? "—"}%)</button>
+      <button class="quiz-btn" id="startQ2">▶ Quiz 2 — Đọc nghĩa, điền từ vựng (${p.q2 ?? "—"}%)</button>
+      ${allWrong.size ? `<div class="wrong-list">❌ Từ vựng chưa thuộc (${allWrong.size}): ${[...allWrong].join(", ")}</div>
+        <button class="quiz-btn" id="redoWrong">🔁 Làm lại quiz ${allWrong.size} từ vựng chưa thuộc</button>
+        <button class="quiz-btn" id="revBtn">📖 Ôn tập ${allWrong.size} từ vựng chưa thuộc</button>` : ""}
+      </div>
+    </div>
+    <div class="step ${lock3 ? "locked" : ""}">
+      <h3 class="step-head"><span class="caret">▾</span> Practice 2 · Bài tập ứng dụng ${p.done || hasP3 ? "✅" : ""}</h3>
+      <div class="step-body">
+      ${lock3 ? '<div class="hint">🔒 Đạt ≥80% cả 2 quiz ở Practice 1 mới được làm bài tập.</div>' : `
+        ${u.pdf ? `<a class="quiz-btn" href="${u.pdf}" target="_blank">📄 Mở file PDF bài tập</a>` : ""}
+        <input type="file" id="hwPdf" accept="application/pdf">
+        <div class="hint">Chọn file PDF bài tập trên máy để mở xem (không lưu lại).</div>
+        <div class="row" style="align-items:center">
+          <input type="number" id="hwRight" min="0" placeholder="Số câu đúng" value="${p.hwRight ?? ""}">
+          <b style="font-size:20px">/</b>
+          <input type="number" id="hwTotal" min="1" placeholder="Tổng số câu" value="${p.hwTotal ?? ""}">
+        </div>
+        <textarea id="hwWrong" rows="3" placeholder="Các từ vựng làm sai — mỗi từ một dòng. Để trống nếu đúng hết.">${escH(p.hwWrongTxt ?? hwWrong.join("\n"))}</textarea>
+        <textarea id="hwWork" rows="4" placeholder="✏️ Đặt câu với các từ sai ở trên rồi nộp lại — mỗi câu một dòng.">${escH(p.hwWork)}</textarea>
+        <button class="quiz-btn" id="hwSubmit">Nộp bài tập</button>
+        ${p.hw != null ? `<div class="hint">Kết quả: ${p.hw}% ${p.done ? "— Đạt ✅" : "— Chưa đạt (cần ≥80%)"}</div>` : ""}
+        ${p.done ? "<p>🎉 Unit hoàn thành — unit kế tiếp đã được mở!</p>" : ""}`}
+      </div>
+    </div>
+    <div class="step ${hasP3 ? "" : "locked"}">
+      <h3 class="step-head"><span class="caret">▾</span> Practice 3 · Bài tập phụ đạo ${p.p3done ? "✅" : ""}</h3>
+      <div class="step-body">
+      ${!hasP3 ? '<div class="hint">🔒 Mở khi Practice 2 còn từ vựng làm sai — giáo viên sẽ ra bài tập ứng dụng mới với các từ đó.</div>' :
+        p.p3done ? '<p>🎉 Đã thuộc hết các từ từng sai!</p>' : `
+        <div class="hint">📌 Ôn lại các từ: <b>${escH(hwWrong.join(", "))}</b> — làm bài tập giáo viên giao rồi nhập kết quả bên dưới.</div>
+        <div class="row" style="align-items:center">
+          <input type="number" id="p3Right" min="0" placeholder="Số câu đúng" value="${p.p3Right ?? ""}">
+          <b style="font-size:20px">/</b>
+          <input type="number" id="p3Total" min="1" placeholder="Tổng số câu" value="${p.p3Total ?? ""}">
+        </div>
+        <textarea id="p3Wrong" rows="3" placeholder="Từ vựng vẫn còn sai — mỗi từ một dòng. Để trống nếu đúng hết.">${escH(p.p3WrongTxt ?? (p.p3Wrong || []).join("\n"))}</textarea>
+        <textarea id="p3Work" rows="4" placeholder="✏️ Đặt câu với các từ còn sai — mỗi câu một dòng.">${escH(p.p3Work)}</textarea>
+        <button class="quiz-btn" id="p3Submit">Nộp bài phụ đạo</button>
+        ${p.p3 != null ? `<div class="hint">Kết quả lần trước: ${p.p3}%</div>` : ""}`}
+      </div>
+    </div>`;
+  $("quizBody").querySelectorAll(".step-head").forEach(h =>
+    h.onclick = () => h.closest(".step").classList.toggle("closed"));
+  if ($("viewVid")) $("viewVid").onclick = () => playSaved("unit:" + u._id);
+  $("startQ1").onclick = () => startQuiz("q1");
+  $("startQ2").onclick = () => startQuiz("q2");
+  if ($("revBtn")) $("revBtn").onclick = reviewWrongWords;
+  if ($("redoWrong")) $("redoWrong").onclick = redoWrongQuiz;
+  if (!lock3) {
+    if ($("hwPdf")) $("hwPdf").onchange = e => {
+      const f = e.target.files[0];
+      if (f) window.open(URL.createObjectURL(f), "_blank");
+    };
+    $("hwSubmit").onclick = submitHomework;
+  }
+  if (hasP3 && !p.p3done && $("p3Submit")) $("p3Submit").onclick = submitP3;
+  // Tự lưu nháp mọi nội dung học viên đang gõ — đóng giữa chừng không mất
+  const draft = (id, field) => {
+    const el = $(id);
+    if (el) el.oninput = () => { p[field] = el.value; saveStore(); };
+  };
+  draft("hwRight", "hwRight"); draft("hwTotal", "hwTotal");
+  draft("hwWrong", "hwWrongTxt"); draft("hwWork", "hwWork");
+  draft("p3Right", "p3Right"); draft("p3Total", "p3Total");
+  draft("p3Wrong", "p3WrongTxt"); draft("p3Work", "p3Work");
+}
+
+/* Quay video ngay trên màn hình thẻ — học viên vẫn lật thẻ/bấm loa đọc từ,
+   camera là bong bóng tròn kéo thả (như webcam overlay khi quay màn hình).
+   Khi quay: getDisplayMedia lấy track MÀN HÌNH + track MIC → MediaRecorder
+   ghi cả hai vào 1 video (bong bóng camera nằm sẵn trong màn hình được quay).
+   Nếu không chia sẻ được màn hình → tự quay camera thường.
+   Dừng quay → mở #recScreen xem lại video. */
+let recStream = null, screenStream = null, mediaRec = null, recChunks = [];
+let screenHintShown = false;
+let onRecDone = null;   // chạy khi bấm "✅ Hoàn thành" (mặc định: đánh dấu p1 của unit)
+let recReturn = null;   // id màn hình cần mở lại sau khi quay từ màn học liệu
+let recCtx = null;      // "unit:<id>" hoặc "mat:<sub>|<coll>|<item>" — phần đang quay
+let recBlob = null, recLastKey = null;   // video vừa quay — để tải về máy
+/* Video lưu trong IndexedDB "dinob_img" (store blob) với key
+   vid:<học viên>|<ngữ cảnh> — xem lại bằng playSaved(ctx). */
+const vidKey = ctx => "vid:" + (store.current || "?") + "|" + ctx;
+function playSaved(ctx) {
+  const k = vidKey(ctx);
+  const show = b => {
+    recBlob = b; recLastKey = k;   // để nút 💾 Tải về máy dùng được
+    $("recFinal").src = URL.createObjectURL(b);
+    $("recSaved").hidden = true;
+    $("recScreen").classList.add("open");
+  };
+  if (imgCache[k]) return show(imgCache[k]);
+  idbGet(k).then(b => {
+    if (b) { imgCache[k] = b; show(b); }
+    else alert("Chưa có video được lưu cho phần này (hoặc quay bằng thiết bị ngoài).");
+  });
+}
+
+async function startCam() {
+  try {
+    recStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    $("camView").srcObject = recStream;
+    $("camBubble").hidden = false;
+    setCamIcon(); setMicIcon();
+  } catch (e) {
+    $("camBubble").hidden = true;
+    alert("Không mở được camera/mic — kiểm tra quyền truy cập, hoặc quay bằng điện thoại rồi bấm \"Đã quay ngoài\".");
+    $("recMark").hidden = false;
+  }
+}
+function stopScreen() {
+  if (screenStream) { screenStream.getTracks().forEach(t => t.stop()); screenStream = null; }
+}
+function stopCam() {
+  if (mediaRec && mediaRec.state === "recording") mediaRec.stop();
+  stopScreen();
+  if (recStream) { recStream.getTracks().forEach(t => t.stop()); recStream = null; }
+  $("camView").srcObject = null;
+  $("camBubble").hidden = true;
+}
+function setCamIcon() {
+  const on = recStream && recStream.getVideoTracks()[0]?.enabled;
+  $("camToggle").classList.toggle("off", !on);
+  $("camView").classList.toggle("off", !on);
+}
+function setMicIcon() {
+  const on = recStream && recStream.getAudioTracks()[0]?.enabled;
+  $("micToggle").classList.toggle("off", !on);
+  $("micToggle").textContent = on ? "🎤" : "🔇";
+}
+$("camToggle").onclick = () => {
+  const t = recStream?.getVideoTracks()[0];
+  if (t) { t.enabled = !t.enabled; setCamIcon(); }
+};
+$("micToggle").onclick = () => {
+  const t = recStream?.getAudioTracks()[0];
+  if (t) { t.enabled = !t.enabled; setMicIcon(); }
+};
+async function beginRec() {
+  if (!recStream) { alert("Chưa có camera — không quay được."); return; }
+  if (mediaRec && mediaRec.state === "recording") return;
+  if (!screenHintShown) {
+    screenHintShown = true;
+    alert("Sắp hiện hộp chọn chia sẻ — tab ứng dụng đã được chọn sẵn, chỉ cần bấm \"Chia sẻ\" / \"Share\" là quay.");
+  }
+  let tracks = [...recStream.getTracks()];   // dự phòng: quay camera thường
+  try {
+    screenStream = await navigator.mediaDevices.getDisplayMedia({
+      video: { displaySurface: "browser" },   // ưu tiên chia sẻ tab
+      preferCurrentTab: true,                 // chọn sẵn chính tab ứng dụng
+      selfBrowserSurface: "include",          // cho phép chọn chính tab ứng dụng
+      surfaceSwitching: "include",            // hiện nút "Share this tab instead"
+    });
+    const vt = screenStream.getVideoTracks()[0];
+    vt.onended = () => { if (mediaRec && mediaRec.state === "recording") mediaRec.stop(); };
+    tracks = [vt, ...recStream.getAudioTracks()];   // màn hình + mic
+  } catch (e) {
+    alert("Không chia sẻ được màn hình — sẽ quay camera thường.");
+  }
+  recChunks = [];
+  mediaRec = new MediaRecorder(new MediaStream(tracks));
+  mediaRec.ondataavailable = e => recChunks.push(e.data);
+  mediaRec.onstop = () => {
+    stopScreen();
+    const blob = new Blob(recChunks, { type: "video/webm" });
+    recBlob = blob;
+    const k = vidKey(recCtx || ("unit:" + ALL_UNITS[unitIdx]._id));
+    idbPut(k, blob); imgCache[k] = blob;   // lưu video vào IndexedDB
+    recLastKey = k;
+    $("recFinal").src = URL.createObjectURL(blob);
+    $("recSaved").hidden = false;
+    $("recScreen").classList.add("open");   // mở màn hình xem lại
+    $("recStop").hidden = true;
+    $("recDot").hidden = true;
+  };
+  mediaRec.start();
+  $("recStop").hidden = false;
+  $("recDot").hidden = false;
+}
+$("recStop").onclick = () => {
+  if (mediaRec && mediaRec.state === "recording") mediaRec.stop();   // phần còn lại dọn trong onstop
+};
+$("recClose").onclick = () => { stopCam(); $("recBar").hidden = true; };
+/* màn hình xem lại: camera + thanh quay vẫn giữ nguyên ở màn hình chính */
+function recReturnHome() {
+  if (recReturn) { $(recReturn).classList.add("open"); recReturn = null; }
+}
+/* 💾 Tải video vừa quay (hoặc đang xem lại) về máy — file .webm */
+$("recDl").onclick = () => {
+  const k = recLastKey;
+  const save = b => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(b);
+    const d = new Date();
+    const stamp = d.toISOString().slice(0, 10) + "-" + String(d.getHours()).padStart(2, "0") + String(d.getMinutes()).padStart(2, "0");
+    a.download = "dinob-" + (store.current || "video") + "-" + stamp + ".webm";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+  if (recBlob) return save(recBlob);
+  if (k) idbGet(k).then(b => b ? save(b) : alert("Không tìm thấy video để tải."));
+};
+$("recBack").onclick = () => { $("recScreen").classList.remove("open"); recReturnHome(); };
+$("recRetry").onclick = () => { $("recScreen").classList.remove("open"); recReturnHome(); };
+$("recDoneBtn").onclick = () => {
+  if (onRecDone) { const f = onRecDone; onRecDone = null; f(); }
+  else {
+    const p = prog(ALL_UNITS[unitIdx]);
+    p.p1 = true; p.p1At = Date.now();
+    saveProgress();
+  }
+  stopCam();
+  $("recBar").hidden = true;
+  $("recScreen").classList.remove("open");
+  recReturnHome();
+  if ($("quizScreen").classList.contains("open")) renderQuizHome();
+};
+$("recMark").onclick = () => {
+  const p = prog(ALL_UNITS[unitIdx]);
+  p.p1 = true; p.p1At = Date.now();
+  saveProgress();
+  stopCam();
+  $("recBar").hidden = true;
+};
+
+/* kéo thả bong bóng camera */
+(() => {
+  const bub = $("camBubble");
+  let drag = null;
+  bub.onpointerdown = e => {
+    if (e.target.closest("button")) return;
+    const r = bub.getBoundingClientRect();
+    drag = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+    bub.setPointerCapture(e.pointerId);
+  };
+  bub.onpointermove = e => {
+    if (!drag) return;
+    bub.style.left = (e.clientX - drag.dx) + "px";
+    bub.style.top = (e.clientY - drag.dy) + "px";
+    bub.style.right = "auto"; bub.style.bottom = "auto";
+  };
+  bub.onpointerup = bub.onpointercancel = () => drag = null;
+})();
+
+function startQuiz(mode, subset, chain) {
+  const ws = ALL_UNITS[unitIdx].words;
+  if (mode === "q1" && ws.length < 2) { alert("Cần ít nhất 2 từ để làm quiz!"); return; }
+  quiz = { mode, list: shuffle([...(subset || ws)]), i: 0, ok: 0, results: {}, chain: chain || [] };
+  renderQ();
+}
+
+/* một nút: làm lại quiz cho toàn bộ từ chưa thuộc — Quiz 1 trước, rồi nối tiếp Quiz 2 */
+function redoWrongQuiz() {
+  const u = ALL_UNITS[unitIdx], p = prog(u);
+  const w1 = u.words.filter(w => wrongList(p, "q1").includes(w.word));
+  const w2 = u.words.filter(w => wrongList(p, "q2").includes(w.word));
+  const chain = w2.length ? [{ mode: "q2", list: w2 }] : [];
+  if (w1.length) startQuiz("q1", w1, chain);
+  else if (w2.length) startQuiz("q2", w2);
+}
+
+function renderQ() {
+  const w = quiz.list[quiz.i], n = quiz.list.length;
+  if (quiz.mode === "q1") {
+    const pool = shuffle(ALL_UNITS[unitIdx].words.filter(x => x !== w)).slice(0, 3);
+    const opts = shuffle([w, ...pool]);
+    $("quizBody").innerHTML = `<h3 style="text-align:center">Quiz 1 · Câu ${quiz.i + 1}/${n} — nghe rồi chọn nghĩa đúng</h3>
+      <button class="quiz-listen" id="qSpeak">
+        <span class="circ"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="13" width="4" height="7" rx="2" fill="#fff"/><rect x="17" y="13" width="4" height="7" rx="2" fill="#fff"/></svg></span>
+        <span class="lbl">Nhấn để nghe</span>
+      </button>
+      <div id="qOpts"></div>`;
+    $("qSpeak").onclick = () => speakText(w.word);
+    speakText(w.word);
+    opts.forEach((o, oi) => {
+      const b = document.createElement("button");
+      b.className = "quiz-opt";
+      b.innerHTML = `<span>${o.meaning}</span><span class="badge">${"ABCD"[oi]}</span>`;
+      b.onclick = () => {
+        quiz.results[w.word] = o === w;
+        if (o === w) { quiz.ok++; b.classList.add("ok"); }
+        else {
+          b.classList.add("bad");
+          [...$("qOpts").children].find(x => x._w === w)?.classList.add("ok");
+        }
+        [...$("qOpts").children].forEach(x => x.disabled = true);
+        setTimeout(nextQ, 900);
+      };
+      b._w = o;
+      $("qOpts").appendChild(b);
+    });
+  } else {
+    $("quizBody").innerHTML = `<h3>Quiz 2 · Câu ${quiz.i + 1}/${n} — đọc nghĩa, gõ từ vựng rồi Enter</h3>
+      <div class="sign" style="margin-bottom:12px">${w.meaning}</div>
+      <input type="text" id="qAnswer" placeholder="Gõ từ vựng rồi Enter…" autocomplete="off">
+      <div class="hint" id="qMsg"></div>`;
+    const check = () => {
+      const okAns = $("qAnswer").value.trim().toLowerCase() === w.word.toLowerCase();
+      quiz.results[w.word] = okAns;
+      if (okAns) quiz.ok++;
+      $("qMsg").textContent = okAns ? "✅ Đúng!" : `❌ Sai — đáp án: ${w.word}`;
+      $("qAnswer").disabled = true;
+      setTimeout(nextQ, okAns ? 900 : 2600);   // sai thì dừng lâu hơn để kịp nhìn đáp án
+    };
+    $("qAnswer").onkeydown = e => { if (e.key === "Enter") check(); };
+    $("qAnswer").focus();
+  }
+}
+
+function nextQ() {
+  quiz.i++;
+  quiz.i < quiz.list.length ? renderQ() : finishQuiz();
+}
+
+function finishQuiz() {
+  const u = ALL_UNITS[unitIdx], p = prog(u);
+  const key = quiz.mode + "Wrong";
+  const wrongSet = new Set(p[key] || []);
+  for (const [word, ok] of Object.entries(quiz.results))
+    ok ? wrongSet.delete(word) : wrongSet.add(word);
+  p[key] = [...wrongSet];
+  // điểm quiz = % từ của cả unit hiện không còn sai
+  const pct = Math.round((u.words.length - wrongSet.size) / (u.words.length || 1) * 100);
+  p[quiz.mode] = pct;
+  p[quiz.mode + "At"] = Date.now();
+  saveProgress();
+  const missed = Object.entries(quiz.results).filter(([, ok]) => !ok).map(([w]) => w);
+  const quizDone = (p.q1 ?? 0) >= 80 && (p.q2 ?? 0) >= 80;
+  $("quizBody").innerHTML = `<h3>Kết quả: ${quiz.ok}/${quiz.list.length} — ${pct}% (toàn unit)</h3>
+    <p>${pct >= 80 ? "✅ Đạt! Có thể tiếp tục bước kế." : "❌ Chưa đạt — cần ≥80%, làm lại nhé!"}</p>
+    ${quizDone ? "<p>🎉 Cả 2 quiz đều ≥80% — <b>Practice 2 (Bài tập ứng dụng) đã mở khóa!</b></p>" : ""}
+    ${missed.length
+      ? `<div class="wrong-list">❌ Từ làm sai lượt này: ${missed.join(", ")}</div>`
+      : "<p>🎉 Không sai từ nào!</p>"}
+    ${wrongSet.size
+      ? `<div class="wrong-list">📌 Từ còn sai tích lũy: ${[...wrongSet].join(", ")}</div>
+         <button class="quiz-btn" id="qRedo">🔁 Làm lại ${wrongSet.size} từ sai</button>`
+      : ""}
+    ${quiz.chain.length ? `<button class="quiz-btn" id="qNext">▶ Tiếp tục: Quiz ${quiz.chain[0].mode === "q1" ? "1" : "2"} với từ chưa thuộc</button>` : ""}
+    <button class="quiz-btn" id="qAgain">Làm lại cả quiz</button>
+    <button class="quiz-btn" id="qHome">Về menu luyện tập</button>`;
+  if ($("qRedo")) $("qRedo").onclick = () =>
+    startQuiz(quiz.mode, u.words.filter(w => wrongSet.has(w.word)));
+  if ($("qNext")) $("qNext").onclick = () => {
+    const nx = quiz.chain.shift();
+    startQuiz(nx.mode, nx.list, quiz.chain);
+  };
+  $("qAgain").onclick = () => startQuiz(quiz.mode);
+  $("qHome").onclick = renderQuizHome;
+}
+
+/* Ôn tập: duyệt lại thẻ của riêng các từ sai ở Quiz 1 & 2 */
+function reviewWrongWords() {
+  const u = ALL_UNITS[unitIdx], p = prog(u);
+  const wrongSet = new Set([...wrongList(p, "q1"), ...wrongList(p, "q2")]);
+  const ws = u.words.filter(w => wrongSet.has(w.word));
+  if (!ws.length) return;
+  $("quizScreen").classList.remove("open");
+  ALL_WORDS = ws;
+  buildPicker(); idx = 0; render();
+  $("reviewBadge").hidden = false;
+}
+$("reviewBadge").onclick = () => {
+  $("reviewBadge").hidden = true;
+  loadUnit(unitIdx);   // trở về danh sách đầy đủ của unit
+};
+
+/* Practice 2: học viên nhập số câu đúng / tổng số câu -> hệ thống tính %;
+   nhập các từ vựng làm sai -> BẮT BUỘC tự đặt câu với các từ đó rồi nộp.
+   Còn từ sai -> mở Practice 3 (bài tập phụ đạo giáo viên ra riêng). */
+function submitHomework() {
+  const u = ALL_UNITS[unitIdx], p = prog(u);
+  if (!isAdmin() && !((p.q1 ?? 0) >= 80 && (p.q2 ?? 0) >= 80)) return;   // chặn tick khi quiz chưa đạt
+  const r = +$("hwRight").value, t = +$("hwTotal").value;
+  if (!t || isNaN(r) || r < 0 || r > t) {
+    alert("Nhập số câu đúng và tổng số câu (số đúng không lớn hơn tổng)!");
+    return;
+  }
+  const wrong = $("hwWrong").value.split("\n").map(s => s.trim()).filter(Boolean);
+  const work = $("hwWork").value.trim();
+  if (wrong.length && !work) {
+    alert("Còn từ vựng làm sai — đặt câu với các từ đó rồi mới nộp nhé!");
+    return;
+  }
+  const pct = Math.round(r / t * 100);
+  p.hw = pct;
+  p.hwRight = r; p.hwTotal = t;   // lưu số câu đã nhập để xem lại
+  p.hwWrong = wrong;
+  if (work) p.hwWork = work; else delete p.hwWork;
+  /* done = đạt ≥80% VÀ không còn từ sai — còn từ sai thì phải xong Practice 3 */
+  p.done = pct >= 80 && wrong.length === 0;
+  if (p.done && !p.doneAt) p.doneAt = Date.now();   // mốc hoàn thành — dùng cho báo cáo tuần
+  p.hwAt = Date.now();
+  saveProgress();
+  alert(`Bài tập: ${r}/${t} câu đúng = ${pct}%`
+      + (p.done ? " — Hoàn thành! Unit kế tiếp đã mở."
+        : wrong.length ? ` — Còn ${wrong.length} từ sai: làm xong Practice 3 mới mở unit kế tiếp.`
+        : " — Chưa đạt (cần ≥80%)."));
+  renderQuizHome();
+}
+/* Practice 3: bài tập phụ đạo với các từ còn sai (giáo viên ra ngoài app).
+   Còn từ sai -> phải đặt câu; hết từ sai -> p3done. */
+function submitP3() {
+  const u = ALL_UNITS[unitIdx], p = prog(u);
+  const r = +$("p3Right").value, t = +$("p3Total").value;
+  if (!t || isNaN(r) || r < 0 || r > t) {
+    alert("Nhập số câu đúng và tổng số câu (số đúng không lớn hơn tổng)!");
+    return;
+  }
+  const wrong = $("p3Wrong").value.split("\n").map(s => s.trim()).filter(Boolean);
+  const work = $("p3Work").value.trim();
+  if (wrong.length && !work) {
+    alert("Còn từ vựng làm sai — đặt câu với các từ đó rồi mới nộp nhé!");
+    return;
+  }
+  p.p3 = Math.round(r / t * 100);
+  p.p3Right = r; p.p3Total = t;
+  p.p3Wrong = wrong;
+  if (work) p.p3Work = work; else delete p.p3Work;
+  p.p3done = wrong.length === 0;
+  p.p3At = Date.now();
+  /* nộp bài phụ đạo = unit coi như hoàn thành, mở unit kế;
+     kết quả % vẫn lưu & hiển thị để theo dõi mức độ nắm bài */
+  p.done = true;
+  if (!p.doneAt) p.doneAt = Date.now();
+  saveProgress();
+  alert(p.p3done ? `Đúng hết — tuyệt vời! 🎉 Unit kế tiếp đã mở. (Kết quả: ${r}/${t} = ${p.p3}%)`
+                 : `Bài phụ đạo: ${r}/${t} = ${p.p3}%. Unit đã hoàn thành, unit kế tiếp mở — còn ${wrong.length} từ sai nên ôn thêm nhé.`);
+  renderQuizHome();
+}
+
+/* ---------- đăng nhập ---------- */
+function renderLogin() {
+  const names = Object.keys(store.users);
+  $("loginUsers").innerHTML = names.length
+    ? '<div class="hint">Hoặc chọn tên đã học trước:</div>' +
+      names.map(n => `<span class="user-row">
+        <button class="quiz-btn" data-user="${n}">${nameIcon(n)}</button>
+        ${isAdmin() ? `<button class="user-del" data-del="${n}" title="Xóa dữ liệu học của ${n}">🗑</button>` : ""}
+      </span>`).join("")
+    : "";
+  document.querySelectorAll("[data-user]").forEach(b =>
+    b.onclick = () => doLogin(b.dataset.user));
+  document.querySelectorAll("[data-del]").forEach(b => b.onclick = () => {
+    const n = b.dataset.del;
+    if (!confirm(`Xóa toàn bộ dữ liệu học của "${n}"? (điểm quiz, từ chưa thuộc, video đã quay, unit đã mở)`)) return;
+    delete store.users[n];
+    if (store.current === n) { store.current = null; progress = {}; $("userName").textContent = ""; }
+    saveStore();
+    renderLogin();
+  });
+}
+function doLogin(name) {
+  name = (name || "").trim();
+  if (!name) { $("loginName").focus(); return; }
+  if (name.toLowerCase() === ADMIN_NAME) {   // admin: hỏi mật khẩu, giữ phiên trong tab
+    if (prompt("🔐 Mật khẩu admin:") !== ADMIN_PASS) { alert("Sai mật khẩu!"); return; }
+    sessionStorage.setItem("dinob_admin", "1");
+    name = ADMIN_NAME;
+  }
+  loadUser(name);
+  $("userName").textContent = nameIcon(name);
+  $("loginScreen").classList.remove("open");
+  $("loginName").value = "";
+  buildUnitPicker();
+  loadUnit(unitIdx);   // nạp lại để cập nhật khóa/✅ theo tiến độ user
+  openHome();          // sau đăng nhập -> màn hình chính DinoB Lab
+}
+$("loginBtn").onclick = () => doLogin($("loginName").value);
+$("loginName").onkeydown = e => { if (e.key === "Enter") doLogin($("loginName").value); };
+$("userName").onclick = () => { renderLogin(); $("loginScreen").classList.add("open"); };
+
+/* ---------- lưu trữ SQLite (sql.js — WASM, file .sqlite thật) ----------
+   Mọi key localStorage được ghi song song vào bảng kv(k TEXT PRIMARY KEY, v TEXT)
+   trong database; file DB dump base64 về localStorage["dinob_sqlite"] mỗi lần ghi.
+   Nút 💾/📥 trên trang chủ xuất/nhập file .sqlite để sao lưu / chuyển máy —
+   mở được bằng DB Browser for SQLite, sqlite3 CLI… */
+let DB = null;
+const _lsSet = localStorage.setItem.bind(localStorage);
+const _lsDel = localStorage.removeItem.bind(localStorage);
+function persistDB() {
+  if (!DB) return;
+  const bin = DB.export();
+  let s = "";
+  for (let i = 0; i < bin.length; i += 8192) s += String.fromCharCode(...bin.subarray(i, i + 8192));
+  _lsSet("dinob_sqlite", btoa(s));
+}
+function dbPut(k, v) { DB.run("INSERT OR REPLACE INTO kv(k,v) VALUES(?,?)", [k, v]); }
+localStorage.setItem = (k, v) => {
+  _lsSet(k, v);
+  if (DB) { dbPut(k, v); persistDB(); }
+};
+localStorage.removeItem = k => {
+  _lsDel(k);
+  if (DB) { DB.run("DELETE FROM kv WHERE k=?", [k]); persistDB(); }
+};
+async function initDB() {
+  try {
+    const SQL = await initSqlJs({ locateFile: f => "https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/" + f });
+    const saved = localStorage.getItem("dinob_sqlite");
+    if (saved) {
+      DB = new SQL.Database(Uint8Array.from(atob(saved), c => c.charCodeAt(0)));
+      DB.run("CREATE TABLE IF NOT EXISTS kv(k TEXT PRIMARY KEY, v TEXT)");
+      // đồng bộ ngược DB -> localStorage (ví dụ sau khi nhập file .sqlite)
+      let diff = false;
+      const res = DB.exec("SELECT k,v FROM kv");
+      if (res.length) res[0].values.forEach(([k, v]) => {
+        if (localStorage.getItem(k) !== v) { _lsSet(k, v); diff = true; }
+      });
+      if (diff && !sessionStorage.getItem("dinob_reloaded")) {
+        sessionStorage.setItem("dinob_reloaded", "1");
+        location.reload();
+        return;
+      }
+      sessionStorage.removeItem("dinob_reloaded");
+    } else {
+      DB = new SQL.Database();
+      DB.run("CREATE TABLE IF NOT EXISTS kv(k TEXT PRIMARY KEY, v TEXT)");
+      for (let i = 0; i < localStorage.length; i++) {   // migrate dữ liệu cũ vào SQLite
+        const k = localStorage.key(i);
+        if (k !== "dinob_sqlite") dbPut(k, localStorage.getItem(k));
+      }
+      persistDB();
+    }
+    if ($("dbStatus")) $("dbStatus").textContent = "🗄 SQLite ✓";
+  } catch (e) {
+    if ($("dbStatus")) $("dbStatus").textContent = "⚠ Không tải được SQLite — đang lưu localStorage thường.";
+  }
+}
+$("dbExport").onclick = () => {
+  if (!DB) { alert("SQLite chưa sẵn sàng (cần internet tải thư viện lần đầu)."); return; }
+  persistDB();
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([DB.export()], { type: "application/octet-stream" }));
+  a.download = "dinob-data.sqlite";
+  a.click();
+};
+$("dbImportBtn").onclick = () => $("dbImport").click();
+$("dbImport").onchange = e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  f.arrayBuffer().then(buf => {
+    const b = new Uint8Array(buf);
+    let s = "";
+    for (let i = 0; i < b.length; i += 8192) s += String.fromCharCode(...b.subarray(i, i + 8192));
+    _lsSet("dinob_sqlite", btoa(s));
+    sessionStorage.removeItem("dinob_reloaded");
+    location.reload();
+  });
+};
+initDB();   // không chặn khởi động — app chạy ngay trên localStorage
+
+buildUnitPicker();
+loadUnit(0);
+if (store.current && (store.current !== ADMIN_NAME || sessionStorage.getItem("dinob_admin") === "1")) {
+  loadUser(store.current);
+  $("userName").textContent = nameIcon(store.current);
+  buildUnitPicker();
+  openHome();          // đã đăng nhập sẵn -> vào thẳng trang chủ
+} else {
+  renderLogin();
+  $("loginScreen").classList.add("open");
+}
+</script>
+</body>
+</html>
