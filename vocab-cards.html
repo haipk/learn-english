@@ -1161,6 +1161,10 @@ function idbPut(k, v) {
   if (!IDB) return;
   try { IDB.transaction("img", "readwrite").objectStore("img").put(v, k); } catch (e) {}
 }
+function idbDel(k) {
+  if (!IDB) return;
+  try { IDB.transaction("img", "readwrite").objectStore("img").delete(k); } catch (e) {}
+}
 const imgPicker = document.createElement("input");
 imgPicker.type = "file"; imgPicker.accept = "image/*"; imgPicker.hidden = true;
 document.body.appendChild(imgPicker);
@@ -1747,7 +1751,7 @@ function render() {
 
 function speakText(t) {
   const u = new SpeechSynthesisUtterance(t);
-  u.lang = "en-US"; u.rate = 0.68;   // chậm hơn ~20% so với trước
+  u.lang = "en-US"; u.rate = 0.54;   // chậm hơn thêm ~20% so với tốc độ 0.68 hiện tại
   speechSynthesis.cancel(); speechSynthesis.speak(u);
 }
 function speak() {
@@ -2766,6 +2770,7 @@ function renderQuizHome() {
    Nếu không chia sẻ được màn hình → tự quay camera thường.
    Dừng quay → mở #recScreen xem lại video. */
 let recStream = null, screenStream = null, mediaRec = null, recChunks = [];
+let recChunkIdx = 0, recChunkBase = null;   // lưu từng khúc 2 giây vào IndexedDB
 let screenHintShown = false;
 let onRecDone = null;   // chạy khi bấm "✅ Hoàn thành" (mặc định: đánh dấu p1 của unit)
 let recReturn = null;   // id màn hình cần mở lại sau khi quay từ màn học liệu
@@ -2785,8 +2790,27 @@ function playSaved(ctx) {
   if (imgCache[k]) return show(imgCache[k]);
   idbGet(k).then(b => {
     if (b) { imgCache[k] = b; show(b); }
-    else alert("Chưa có video được lưu cho phần này (hoặc quay bằng thiết bị ngoài).");
+    else {
+      // thử phục hồi từ các khúc đã lưu nếu app bị tắt đột ngột giữa chừng
+      recoverVid(k).then(b2 => {
+        if (b2) { imgCache[k] = b2; show(b2); }
+        else alert("Chưa có video được lưu cho phần này (hoặc quay bằng thiết bị ngoài).");
+      });
+    }
   });
+}
+async function recoverVid(base) {
+  const chunks = [];
+  for (let i = 0; i < 10000; i++) {
+    const c = await idbGet(base + "|chunk:" + i);
+    if (!c) break;
+    chunks.push(c);
+  }
+  if (!chunks.length) return null;
+  const blob = new Blob(chunks, { type: "video/webm" });
+  idbPut(base, blob);
+  for (let i = 0; i < chunks.length; i++) idbDel(base + "|chunk:" + i);
+  return blob;
 }
 
 async function startCam() {
@@ -2851,24 +2875,38 @@ async function beginRec() {
     alert("Không chia sẻ được màn hình — sẽ quay camera thường.");
   }
   recChunks = [];
+  recChunkIdx = 0;
+  recChunkBase = vidKey(recCtx || ("unit:" + ALL_UNITS[unitIdx]._id));
   mediaRec = new MediaRecorder(new MediaStream(tracks));
-  mediaRec.ondataavailable = e => recChunks.push(e.data);
-  mediaRec.onstop = () => {
-    stopScreen();
-    const blob = new Blob(recChunks, { type: "video/webm" });
-    recBlob = blob;
-    const k = vidKey(recCtx || ("unit:" + ALL_UNITS[unitIdx]._id));
-    idbPut(k, blob); imgCache[k] = blob;   // lưu video vào IndexedDB
-    recLastKey = k;
-    $("recFinal").src = URL.createObjectURL(blob);
-    $("recSaved").hidden = false;
-    $("recScreen").classList.add("open");   // mở màn hình xem lại
-    $("recStop").hidden = true;
-    $("recDot").hidden = true;
+  mediaRec.ondataavailable = e => {
+    recChunks.push(e.data);
+    idbPut(recChunkBase + "|chunk:" + recChunkIdx, e.data);
+    recChunkIdx++;
   };
-  mediaRec.start();
+  mediaRec.onstop = () => saveRec(recChunks);
+  mediaRec.start(2000);   // lưu khúc 2 giây/1 khúc — giữ được video khi app tắt đột ngột
   $("recStop").hidden = false;
   $("recDot").hidden = false;
+}
+function saveRec(chunks) {
+  stopScreen();
+  const blob = new Blob(chunks, { type: "video/webm" });
+  recBlob = blob;
+  const k = recChunkBase;
+  idbPut(k, blob); imgCache[k] = blob;
+  recLastKey = k;
+  // xóa các khúc tạm đã ghép
+  for (let i = 0; i < recChunkIdx; i++) idbDel(k + "|chunk:" + i);
+  $("recFinal").src = URL.createObjectURL(blob);
+  $("recSaved").hidden = false;
+  $("recScreen").classList.add("open");   // mở màn hình xem lại
+  $("recStop").hidden = true;
+  $("recDot").hidden = true;
+  // tự động đánh dấu đã quay unit (không cần bấm Hoàn thành)
+  if (recCtx?.startsWith("unit:")) {
+    const p = prog(ALL_UNITS[unitIdx]);
+    if (!p.p1) { p.p1 = true; p.p1At = Date.now(); saveProgress(); }
+  }
 }
 $("recStop").onclick = () => {
   if (mediaRec && mediaRec.state === "recording") mediaRec.stop();   // phần còn lại dọn trong onstop
@@ -2934,6 +2972,15 @@ $("recMark").onclick = () => {
   };
   bub.onpointerup = bub.onpointercancel = () => drag = null;
 })();
+
+/* Tự động dừng và lưu video khi người dùng tắt tab / đóng app
+   — các khúc đã lưu 2 giây/1 khúc sẽ giúp phục hồi khi mở lại. */
+window.addEventListener("beforeunload", () => {
+  if (mediaRec && mediaRec.state === "recording") {
+    try { mediaRec.stop(); } catch (e) {}
+    stopCam();
+  }
+});
 
 function startQuiz(mode, subset, chain) {
   const ws = ALL_UNITS[unitIdx].words;
