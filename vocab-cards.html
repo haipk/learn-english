@@ -841,6 +841,7 @@
     <div class="tb-mid">
       <button class="nav-btn" data-subject="BIO">BIO</button>
       <button class="nav-btn" data-subject="REPORT">MY PROGRESS</button>
+      <button class="nav-btn" data-subject="MISSIONS">🏆 Nhiệm vụ</button>
       <button class="nav-btn" data-subject="MATH">MATH</button>
       <div class="nav-drop">
         <button class="nav-btn" id="engBtn">ENGLISH ▾</button>
@@ -1844,6 +1845,8 @@ document.querySelectorAll("[data-subject]").forEach(b => b.onclick = () => {
     repWeek = 0;   // mở báo cáo luôn về tuần hiện tại
     renderReport();
     $("reportScreen").classList.add("open");
+  } else if (b.dataset.subject === "MISSIONS") {
+    window.open("nhiem-vu.html", "_blank");
   } else if (MATERIALS[b.dataset.subject]) {
     $("homeScreen").classList.remove("open");
     openMaterials(b.dataset.subject);
