@@ -842,6 +842,7 @@
       <button class="nav-btn" data-subject="BIO">BIO</button>
       <button class="nav-btn" data-subject="REPORT">MY PROGRESS</button>
       <button class="nav-btn" data-subject="MATH">MATH</button>
+      <button class="nav-btn" data-subject="MISSIONS">🏆 Nhiệm vụ</button>
       <div class="nav-drop">
         <button class="nav-btn" id="engBtn">ENGLISH ▾</button>
         <div class="nav-menu" id="engMenu">
@@ -973,6 +974,13 @@
         <button class="quiz-btn" onclick="window.open('nhiem-vu.html','_blank')">Mở trang Nhiệm vụ 🎁</button>
       </div>
     </div>
+  </div>
+</div>
+
+<div class="screen full" id="missionScreen">
+  <div class="screen-card" id="missionCard" style="padding:0;display:flex;flex-direction:column;min-height:100vh">
+    <button class="screen-back" id="missionBack" style="flex:none">← Quay lại</button>
+    <iframe id="missionFrame" src="nhiem-vu.html" style="flex:1;width:100%;border:0;min-height:0" title="Nhiệm vụ"></iframe>
   </div>
 </div>
 
@@ -1851,6 +1859,9 @@ document.querySelectorAll("[data-subject]").forEach(b => b.onclick = () => {
     repWeek = 0;   // mở báo cáo luôn về tuần hiện tại
     renderReport();
     $("reportScreen").classList.add("open");
+  } else if (b.dataset.subject === "MISSIONS") {
+    $("homeScreen").classList.remove("open");
+    $("missionScreen").classList.add("open");
   } else if (MATERIALS[b.dataset.subject]) {
     $("homeScreen").classList.remove("open");
     openMaterials(b.dataset.subject);
@@ -1984,6 +1995,7 @@ $("planSave").onclick = () => {
 $("wkPrev").onclick = () => { repWeek--; renderReport(); };   // xem tuần cũ
 $("wkNext").onclick = () => { repWeek++; renderReport(); };   // tuần sau / soạn trước kế hoạch
 $("reportBack").onclick = () => { $("reportScreen").classList.remove("open"); openHome(); };
+$("missionBack").onclick = () => { $("missionScreen").classList.remove("open"); openHome(); };
 
 /* ---------- học liệu theo môn (LISTENING-SPEAKING / READING / WRITING / GRAMMAR) ----------
    localStorage["dinob_materials"] = { "<MÔN>": [ {name, items:[{t, link}]} ] } — chung mọi học viên.

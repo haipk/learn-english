@@ -151,6 +151,22 @@ textarea{min-height:78px}
 }
 
 </style>
+<style>
+/* Top tab bar layout for DinoB menu */
+.shell{display:block}
+aside{position:sticky;top:0;height:auto;width:100%;display:flex;align-items:center;gap:10px;padding:12px 16px;border-right:0;border-bottom:3px solid var(--ink);overflow:auto}
+.logo{margin:0;margin-right:auto;white-space:nowrap;font-size:17px}
+nav{display:flex;gap:4px;flex-wrap:nowrap}
+nav a{margin:0;white-space:nowrap;transform:none!important}
+#nvHome,.parent-open{width:auto;margin:0;flex:none;transform:none!important}
+.view-switch .active{background:var(--ink);color:#fff}
+main{padding:15px}
+@media(max-width:850px){
+  aside{padding:10px}
+  nav a{padding:8px 10px;font-size:14px}
+  .logo{font-size:15px}
+}
+</style>
 </head>
 <body>
 <div class="shell">
@@ -162,7 +178,7 @@ textarea{min-height:78px}
       <a href="#achievements" data-section="achievements">🏆 Thành tích</a>
       <a href="#rewards" data-section="rewards">🎁 Đổi quà</a>
     </nav>
-    <a href="vocab-cards.html" style="display:block;color:#d1d5db;text-decoration:none;padding:12px 14px;border-radius:12px;margin:6px 0;background:#2b2d45">🏠 Về DinoB Lab</a>
+    <a id="nvHome" href="vocab-cards.html" target="_top" style="display:block;color:#d1d5db;text-decoration:none;padding:12px 14px;border-radius:12px;margin:6px 0;background:#2b2d45">🏠 Về DinoB Lab</a>
     <button class="parent-open" onclick="openParentModal()">🔒 Phụ huynh</button>
   </aside>
 
@@ -206,11 +222,12 @@ textarea{min-height:78px}
     <section id="scheduleSection" class="app-section">
       <div class="card">
         <h2>📅 Lịch học của <span id="scheduleName">bé</span></h2>
-        <div class="calendar-head">
-          <button onclick="changeMonth(-1)">‹ Tháng trước</button>
-          <b id="calendarTitle"></b>
-          <button onclick="changeMonth(1)">Tháng sau ›</button>
+        <div class="view-switch" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+          <button class="btn" id="btnViewMonth" onclick="setScheduleView('month')">Tháng</button>
+          <button class="btn" id="btnViewWeek" onclick="setScheduleView('week')">Tuần</button>
+          <button class="btn" id="btnViewDay" onclick="setScheduleView('day')">Ngày</button>
         </div>
+        <div id="scheduleHead" class="calendar-head"></div>
         <div class="calendar-grid" id="calendarGrid"></div>
         <div id="dayTasks" style="margin-top:18px"></div>
       </div>
@@ -538,6 +555,9 @@ let calendarCursor=new Date();
 let selectedCalendarDate=todayISO();
 let selectedParentTaskDate='';
 let confirmCallback=null;
+let scheduleView='week';
+let weekCursor=new Date();
+let dayCursor=new Date();
 
 function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(data))}
 function child(){return data.children.find(c=>c.id===currentChildId)||null}
@@ -598,7 +618,7 @@ function render(){
   renderToday();
   renderAchievements();
   renderRewards();
-  renderCalendar();
+  renderSchedule();
   renderManagers();
 }
 
@@ -796,12 +816,46 @@ function redeem(r){
 function closeRewardSuccess(){document.getElementById('rewardSuccessModal').classList.remove('show')}
 function closeEncourage(){document.getElementById('encourageModal').classList.remove('show')}
 
-function renderCalendar(){
+function setScheduleView(v){
+  scheduleView=v;
+  if(v==='month' && !selectedCalendarDate) selectedCalendarDate=todayISO();
+  if(v==='week' && !weekCursor) weekCursor=new Date();
+  if(v==='day' && !dayCursor) dayCursor=new Date();
+  renderSchedule();
+}
+function prevNext(delta){
+  if(scheduleView==='month'){
+    calendarCursor=new Date(calendarCursor.getFullYear(),calendarCursor.getMonth()+delta,1);
+    selectedCalendarDate=localDateISO(calendarCursor);renderSchedule();
+  }else if(scheduleView==='week'){
+    weekCursor.setDate(weekCursor.getDate()+delta*7);weekCursor=new Date(weekCursor);renderSchedule();
+  }else{
+    dayCursor.setDate(dayCursor.getDate()+delta);dayCursor=new Date(dayCursor);renderSchedule();
+  }
+}
+function isoDate(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function startOfWeek(d){
+  const s=new Date(d), dow=(s.getDay()+6)%7; s.setDate(s.getDate()-dow); return s;
+}
+function renderSchedule(){
   const c=child();document.getElementById('scheduleName').textContent=c?(childIcon(c)+' '+c.name):'bé';
-  const grid=document.getElementById('calendarGrid');grid.innerHTML='';
-  ['T2','T3','T4','T5','T6','T7','CN'].forEach(x=>{const d=document.createElement('div');d.className='weekday';d.textContent=x;grid.appendChild(d)});
+  ['btnViewMonth','btnViewWeek','btnViewDay'].forEach(id=>{
+    const b=document.getElementById(id);if(b)b.classList.toggle('active',id==='btnView'+scheduleView[0].toUpperCase()+scheduleView.slice(1));
+  });
+  const head=document.getElementById('scheduleHead'),grid=document.getElementById('calendarGrid');
+  head.innerHTML='';grid.innerHTML='';
+  if(scheduleView==='month') renderMonth(head,grid,c);
+  else if(scheduleView==='week') renderWeek(head,grid,c);
+  else renderDay(head,grid,c);
+  document.getElementById('dayTasks').innerHTML='';
+  renderDayTasks(scheduleView==='day'?isoDate(dayCursor):selectedCalendarDate);
+}
+function renderMonth(head,grid,c){
   const y=calendarCursor.getFullYear(),m=calendarCursor.getMonth();
-  document.getElementById('calendarTitle').textContent='Tháng '+(m+1)+' / '+y;
+  head.innerHTML=`<button onclick="prevNext(-1)">‹ Tháng trước</button><b>Tháng ${m+1} / ${y}</b><button onclick="prevNext(1)">Tháng sau ›</button>`;
+  ['T2','T3','T4','T5','T6','T7','CN'].forEach(x=>{const d=document.createElement('div');d.className='weekday';d.textContent=x;grid.appendChild(d)});
   const first=new Date(y,m,1),last=new Date(y,m+1,0),offset=(first.getDay()+6)%7,total=Math.ceil((offset+last.getDate())/7)*7;
   for(let i=0;i<total;i++){
     const n=i-offset+1,d=document.createElement('button');d.className='day';
@@ -810,21 +864,44 @@ function renderCalendar(){
       const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(n).padStart(2,'0')}`;d.textContent=n;
       if(c?.tasks.some(t=>t.date===iso)){d.classList.add('has-task');const dot=document.createElement('span');dot.className='dot';d.appendChild(dot)}
       if(iso===selectedCalendarDate)d.classList.add('selected');
-      d.onclick=()=>{selectedCalendarDate=iso;renderCalendar()};
+      d.onclick=()=>{selectedCalendarDate=iso;renderSchedule()};
     }
     grid.appendChild(d);
   }
-  renderDayTasks();
 }
-function changeMonth(delta){
-  calendarCursor=new Date(calendarCursor.getFullYear(),calendarCursor.getMonth()+delta,1);
-  selectedCalendarDate=localDateISO(calendarCursor);renderCalendar();
+function renderWeek(head,grid,c){
+  const start=startOfWeek(weekCursor);
+  const end=new Date(start);end.setDate(end.getDate()+6);
+  head.innerHTML=`<button onclick="prevNext(-1)">‹ Tuần trước</button><b>Tuần ${fmtDate(isoDate(start))} — ${fmtDate(isoDate(end))}</b><button onclick="prevNext(1)">Tuần sau ›</button>`;
+  const days=['T2','T3','T4','T5','T6','T7','CN'];
+  const row=document.createElement('div');row.style.display='grid';row.style.gridTemplateColumns='repeat(7,1fr)';row.style.gap='8px';
+  for(let i=0;i<7;i++){
+    const d=new Date(start);d.setDate(start.getDate()+i);
+    const iso=isoDate(d);
+    const cell=document.createElement('button');cell.className='day';cell.style.textAlign='center';
+    const label=document.createElement('div');label.className='weekday';label.style.padding='0';label.textContent=days[i];
+    const num=document.createElement('div');num.style.fontSize='22px';num.style.fontWeight='900';num.textContent=d.getDate();
+    cell.appendChild(label);cell.appendChild(num);
+    if(c?.tasks.some(t=>t.date===iso)){cell.classList.add('has-task')}
+    if(iso===selectedCalendarDate) cell.classList.add('selected');
+    cell.onclick=()=>{selectedCalendarDate=iso;renderSchedule()};
+    row.appendChild(cell);
+  }
+  grid.appendChild(row);
 }
-function renderDayTasks(){
+function renderDay(head,grid,c){
+  const iso=isoDate(dayCursor);
+  head.innerHTML=`<button onclick="prevNext(-1)">‹ Ngày trước</button><b>${fmtDate(iso)}</b><button onclick="prevNext(1)">Ngày sau ›</button>`;
+  const row=document.createElement('div');row.style.display='grid';row.style.gridTemplateColumns='repeat(7,1fr)';row.style.gap='8px';
+  ['T2','T3','T4','T5','T6','T7','CN'].forEach(()=>{const w=document.createElement('div');w.className='weekday';w.textContent='';row.appendChild(w)});
+  grid.appendChild(row);
+  selectedCalendarDate=iso;
+}
+function renderDayTasks(date){
   const box=document.getElementById('dayTasks'),c=child();
-  box.innerHTML='<h3>Nhiệm vụ ngày '+fmtDate(selectedCalendarDate)+'</h3>';
+  box.innerHTML='<h3>Nhiệm vụ ngày '+fmtDate(date)+'</h3>';
   if(!c){box.innerHTML+='<div class="empty">Chưa có hồ sơ bé.</div>';return}
-  const tasks=c.tasks.filter(t=>t.date===selectedCalendarDate);
+  const tasks=c.tasks.filter(t=>t.date===date);
   if(!tasks.length){box.innerHTML+='<div class="empty">Không có nhiệm vụ trong ngày này.</div>';return}
   tasks.forEach(t=>{
     const d=document.createElement('div');d.className='day-task';
@@ -1292,6 +1369,9 @@ document.getElementById('taskDate').value=todayISO();
 document.getElementById('taskEndDate').value=todayISO();
 document.getElementById('duration').value='15 phút';
 render();
+if(window.self!==window.top){
+  const h=document.getElementById('nvHome'); if(h) h.hidden=true;
+}
 </script>
 </body>
 </html>
