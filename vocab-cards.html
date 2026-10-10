@@ -929,50 +929,9 @@
 </div>
 
 <div class="screen full" id="reportScreen">
-  <div class="screen-card" style="max-width:720px">
-    <button class="screen-back" id="reportBack">← Quay lại</button>
-    <h2 id="repTitle">📊 Báo cáo học tập — tuần này</h2>
-    <div class="row" id="repUserRow" hidden style="align-items:center;margin-bottom:10px">
-      <span>👑 Admin — xem &amp; cập nhật dữ liệu của:</span>
-      <select id="repUser" style="font-family:inherit;font-size:15px;padding:6px 10px;border:2.5px solid var(--ink);border-radius:10px"></select>
-    </div>
-    <div class="bio-sec">
-      <h3>🎯 Mục tiêu tuần</h3>
-      <div class="plan-card">
-        <div class="plan-week" style="display:flex;align-items:center;justify-content:center;gap:8px">
-          <button class="quiz-btn" id="wkPrev" style="margin:0;padding:0 10px;font-size:15px;width:auto;flex:none;line-height:1.4">◀</button>
-          <span id="planWeek" style="white-space:nowrap;font-size:15px"></span>
-          <button class="quiz-btn" id="wkNext" style="margin:0;padding:0 10px;font-size:15px;width:auto;flex:none;line-height:1.4">▶</button>
-        </div>
-        <div id="planList"></div>
-        <div style="text-align:center;margin-top:8px">
-          <button class="quiz-btn" id="planEdit" style="margin-bottom:0;font-size:14px;padding:6px 14px">✏️ Sửa kế hoạch</button>
-        </div>
-      </div>
-      <div id="planEditor" style="display:none;margin-top:10px">
-        <textarea id="planText" rows="9" style="width:100%;box-sizing:border-box;font-family:inherit;font-size:15px;padding:10px;border:2.5px solid var(--ink);border-radius:12px" placeholder="Vocab&#10;- Unit 7 - Quiz&#10;- Unit 8 - Quiz + Bài tập&#10;- Quay video các từ sai&#10;Reading: 3 bài / ngày&#10;Bài&#10;- At school&#10;- My big brother"></textarea>
-        <div class="row" style="align-items:center">
-          <button class="quiz-btn" id="planSave" style="margin-bottom:0">💾 Lưu kế hoạch</button>
-          <span class="hint">Mỗi mục 1 dòng. Dòng bắt đầu bằng "- " là việc cần tick ✅</span>
-        </div>
-      </div>
-    </div>
-    <div class="bio-sec">
-      <h3>📈 Tiến độ thực hiện</h3>
-      <div class="rep-bar"><div id="repFill"></div><span id="repFillText"></span></div>
-      <div id="repDetail"></div>
-    </div>
-    <div class="bio-sec">
-      <h3>🏁 Tổng kết tuần</h3>
-      <div id="repSummary"></div>
-    </div>
-    <div class="bio-sec">
-      <h3>🏆 Nhiệm vụ &amp; Quà</h3>
-      <p class="hint">Theo dõi nhiệm vụ hàng ngày, điểm thưởng, thành tích và đổi quà cho con.</p>
-      <div style="text-align:center;margin-top:8px">
-        <button class="quiz-btn" onclick="window.open('nhiem-vu.html','_blank')">Mở trang Nhiệm vụ 🎁</button>
-      </div>
-    </div>
+  <div class="screen-card" id="reportCard" style="padding:0;display:flex;flex-direction:column;min-height:100vh">
+    <button class="screen-back" id="reportBack" style="flex:none">← Quay lại</button>
+    <iframe id="missionFrame" src="nhiem-vu.html" style="flex:1;width:100%;border:0;min-height:0" title="Nhiệm vụ"></iframe>
   </div>
 </div>
 
