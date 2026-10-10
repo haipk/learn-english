@@ -151,21 +151,6 @@ textarea{min-height:78px}
 }
 
 </style>
-<style>
-/* Top tab bar layout for DinoB My Progress integration */
-.shell{display:block}
-aside{position:sticky;top:0;height:auto;width:100%;display:flex;align-items:center;gap:10px;padding:12px 16px;border-right:0;border-bottom:3px solid var(--ink);overflow:auto}
-.logo{margin:0;margin-right:auto;white-space:nowrap;font-size:17px}
-nav{display:flex;gap:4px;flex-wrap:nowrap}
-nav a{margin:0;white-space:nowrap;transform:none!important}
-#nvHome,.parent-open{width:auto;margin:0;flex:none;transform:none!important}
-main{padding:15px}
-@media(max-width:850px){
-  aside{padding:10px}
-  nav a{padding:8px 10px;font-size:14px}
-  .logo{font-size:15px}
-}
-</style>
 </head>
 <body>
 <div class="shell">
@@ -177,7 +162,7 @@ main{padding:15px}
       <a href="#achievements" data-section="achievements">🏆 Thành tích</a>
       <a href="#rewards" data-section="rewards">🎁 Đổi quà</a>
     </nav>
-    <a id="nvHome" href="vocab-cards.html" target="_top" style="display:block;color:#d1d5db;text-decoration:none;padding:12px 14px;border-radius:12px;margin:6px 0;background:#2b2d45">🏠 Về DinoB Lab</a>
+    <a href="vocab-cards.html" style="display:block;color:#d1d5db;text-decoration:none;padding:12px 14px;border-radius:12px;margin:6px 0;background:#2b2d45">🏠 Về DinoB Lab</a>
     <button class="parent-open" onclick="openParentModal()">🔒 Phụ huynh</button>
   </aside>
 
@@ -1307,9 +1292,6 @@ document.getElementById('taskDate').value=todayISO();
 document.getElementById('taskEndDate').value=todayISO();
 document.getElementById('duration').value='15 phút';
 render();
-if(window.self!==window.top){
-  const h=document.getElementById('nvHome'); if(h) h.hidden=true;
-}
 </script>
 </body>
 </html>
