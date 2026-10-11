@@ -160,6 +160,8 @@ nav{display:flex;gap:4px;flex-wrap:nowrap}
 nav a{margin:0;white-space:nowrap;transform:none!important}
 #nvHome,.parent-open{width:auto;margin:0;flex:none;transform:none!important}
 .view-switch .active{background:var(--ink);color:#fff}
+.child-switch{align-items:center;margin-bottom:12px}
+.child-switch select{padding:10px 14px;border:2.5px solid var(--ink);border-radius:12px;background:#fff;font-family:inherit;font-weight:800}
 main{padding:15px}
 @media(max-width:850px){
   aside{padding:10px}
@@ -628,18 +630,15 @@ function render(){
 
 function renderChildSwitch(){
   const box=document.getElementById('childSwitch');
-  box.hidden=true;box.style.display='none';
-  if(!perUserMode){
-    box.hidden=false;box.style.display='';
-    box.innerHTML='';
-    data.children.forEach(c=>{
-      const b=document.createElement('button');
-      b.textContent=childIcon(c)+' '+c.name;
-      b.classList.toggle('active',c.id===currentChildId);
-      b.onclick=()=>{currentChildId=c.id;selectedCalendarDate=todayISO();selectedParentTaskDate='';render()};
-      box.appendChild(b);
-    });
-  }
+  box.innerHTML='';
+  if(perUserMode){box.hidden=true;box.style.display='none';return}
+  box.hidden=false;box.style.display='flex';
+  const label=document.createElement('span');label.textContent='👤 Chọn bé:';label.style.whiteSpace='nowrap';
+  const sel=document.createElement('select');sel.style.flex='1';sel.style.maxWidth='320px';
+  data.children.forEach(c=>{const o=document.createElement('option');o.textContent=childIcon(c)+' '+c.name;o.value=c.id;sel.appendChild(o);});
+  sel.value=currentChildId||'';
+  sel.onchange=()=>{currentChildId=sel.value;selectedCalendarDate=todayISO();selectedParentTaskDate='';render()};
+  box.appendChild(label);box.appendChild(sel);
 }
 
 function taskCard(c,t,allowPast=true){
