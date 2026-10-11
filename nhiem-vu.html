@@ -310,7 +310,7 @@ main{padding:15px}
     </div>
 
     <div id="parentArea" style="display:none">
-      <div class="parent-section">
+      <div class="parent-section" hidden>
         <h3>👶 Quản lý hồ sơ các con</h3>
         <div class="formgrid">
           <div><div class="note">Tên bé mới</div><input id="newChildName" placeholder="VD: Bảo Anh"></div>
@@ -558,6 +558,7 @@ let confirmCallback=null;
 let scheduleView='week';
 let weekCursor=new Date();
 let dayCursor=new Date();
+const perUserMode=true;
 
 function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(data))}
 function child(){return data.children.find(c=>c.id===currentChildId)||null}
@@ -624,14 +625,18 @@ function render(){
 
 function renderChildSwitch(){
   const box=document.getElementById('childSwitch');
-  box.innerHTML='';
-  data.children.forEach(c=>{
-    const b=document.createElement('button');
-    b.textContent=childIcon(c)+' '+c.name;
-    b.classList.toggle('active',c.id===currentChildId);
-    b.onclick=()=>{currentChildId=c.id;selectedCalendarDate=todayISO();selectedParentTaskDate='';render()};
-    box.appendChild(b);
-  });
+  box.hidden=true;box.style.display='none';
+  if(!perUserMode){
+    box.hidden=false;box.style.display='';
+    box.innerHTML='';
+    data.children.forEach(c=>{
+      const b=document.createElement('button');
+      b.textContent=childIcon(c)+' '+c.name;
+      b.classList.toggle('active',c.id===currentChildId);
+      b.onclick=()=>{currentChildId=c.id;selectedCalendarDate=todayISO();selectedParentTaskDate='';render()};
+      box.appendChild(b);
+    });
+  }
 }
 
 function taskCard(c,t,allowPast=true){
@@ -940,9 +945,15 @@ function changePassword(){
 
 function fillChildSelect(sel,includeAll=false){
   const prev=sel.value;sel.innerHTML='';
-  data.children.forEach(c=>sel.add(new Option(childIcon(c)+' '+c.name,c.id)));
-  if(includeAll&&data.children.length>=1)sel.add(new Option('👨‍👩‍👧‍👦 Tất cả các con','all'));
-  if(!data.children.length)sel.add(new Option('Chưa có bé',''));
+  if(perUserMode && currentChildId){
+    const c=data.children.find(x=>x.id===currentChildId);
+    if(c) sel.add(new Option(childIcon(c)+' '+c.name,c.id));
+    else sel.add(new Option('Chưa có bé',''));
+  }else{
+    data.children.forEach(c=>sel.add(new Option(childIcon(c)+' '+c.name,c.id)));
+    if(includeAll&&data.children.length>=1)sel.add(new Option('👨‍👩‍👧‍👦 Tất cả các con','all'));
+    if(!data.children.length)sel.add(new Option('Chưa có bé',''));
+  }
   if([...sel.options].some(o=>o.value===prev))sel.value=prev;
 }
 function renderParentSelectors(){

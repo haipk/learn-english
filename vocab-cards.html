@@ -1860,6 +1860,7 @@ document.querySelectorAll("[data-subject]").forEach(b => b.onclick = () => {
     renderReport();
     $("reportScreen").classList.add("open");
   } else if (b.dataset.subject === "MISSIONS") {
+    if (!store || !store.current) { renderLogin(); $("loginScreen").classList.add("open"); return; }
     $("homeScreen").classList.remove("open");
     $("missionScreen").classList.add("open");
   } else if (MATERIALS[b.dataset.subject]) {
