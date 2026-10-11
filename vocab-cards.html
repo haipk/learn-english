@@ -1861,6 +1861,7 @@ document.querySelectorAll("[data-subject]").forEach(b => b.onclick = () => {
     $("reportScreen").classList.add("open");
   } else if (b.dataset.subject === "MISSIONS") {
     if (!store || !store.current) { renderLogin(); $("loginScreen").classList.add("open"); return; }
+    $("missionFrame").src = "nhiem-vu.html" + (isAdmin() ? "?admin=1" : "");
     $("homeScreen").classList.remove("open");
     $("missionScreen").classList.add("open");
   } else if (MATERIALS[b.dataset.subject]) {

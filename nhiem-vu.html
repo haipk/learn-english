@@ -310,7 +310,7 @@ main{padding:15px}
     </div>
 
     <div id="parentArea" style="display:none">
-      <div class="parent-section" hidden>
+      <div class="parent-section" id="childManagerSection" hidden>
         <h3>👶 Quản lý hồ sơ các con</h3>
         <div class="formgrid">
           <div><div class="note">Tên bé mới</div><input id="newChildName" placeholder="VD: Bảo Anh"></div>
@@ -558,7 +558,9 @@ let confirmCallback=null;
 let scheduleView='week';
 let weekCursor=new Date();
 let dayCursor=new Date();
-const perUserMode=true;
+const urlParams=new URLSearchParams(location.search);
+const isAdminMode=urlParams.get('admin')==='1';
+const perUserMode=!isAdminMode;
 
 function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(data))}
 function child(){return data.children.find(c=>c.id===currentChildId)||null}
@@ -614,6 +616,7 @@ function showSection(name){
 
 function render(){
   ensureCurrentChild();
+  const cms=document.getElementById('childManagerSection');if(cms)cms.hidden=perUserMode;
   renderChildSwitch();
   renderParentSelectors();
   renderToday();
