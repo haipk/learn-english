@@ -3354,8 +3354,9 @@ let ghTimer = null, ghBusy = false;
 function ghPushSoon() { clearTimeout(ghTimer); ghTimer = setTimeout(ghPush, 3000); }
 async function ghPush(again) {
   const tok = ghToken();
-  if (!tok || ghBusy) return;
+  if (!tok || ghBusy) return false;
   ghBusy = true;
+  let ok = false;
   try {
     const payload = {};
     for (let i = 0; i < localStorage.length; i++) {
@@ -3373,16 +3374,21 @@ async function ghPush(again) {
         sha, branch: "main",
       }),
     });
+    ok = r.ok;
     ghBusy = false;
-    if (!r.ok && again !== false) ghPush(false);   // sha cũ do máy khác vừa ghi -> thử lại 1 lần
+    if (!ok && again !== false) ok = await ghPush(false);   // sha cũ do máy khác vừa ghi -> thử lại 1 lần
   } catch (e) { ghBusy = false; }
+  return ok;
 }
-$("ghSave").onclick = () => {
+$("ghSave").onclick = async () => {
   const v = $("ghToken").value.trim();
   if (v) localStorage.setItem("dinob_ghtoken", v); else localStorage.removeItem("dinob_ghtoken");
   $("ghToken").value = "";
-  $("ghStatus").textContent = v ? "☁ GitHub ✓" : "✖ Đã xóa token";
-  if (v) ghPush();   // đẩy dữ liệu hiện có lên repo ngay
+  if (!v) { $("ghStatus").textContent = "✖ Đã xóa token"; return; }
+  $("ghStatus").textContent = "☁ Đang kiểm tra…";
+  $("ghStatus").textContent = (await ghPush())
+    ? "☁ GitHub ✓"
+    : "⚠ Token không ghi được — cần quyền Contents: Read and write trên repo haipk/learn-english";
 };
 ghPull();   // kéo dữ liệu mới nhất từ GitHub về (nếu có)
 
