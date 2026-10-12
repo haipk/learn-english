@@ -878,6 +878,8 @@
       <button class="nav-btn" id="ghSave">🔗 Lưu token</button>
       <button class="nav-btn" id="ghDbExport">☁⬆ .sqlite → GitHub</button>
       <button class="nav-btn" id="ghDbImport">☁⬇ .sqlite ← GitHub</button>
+      <button class="nav-btn" id="ghIdbExport">☁⬆ Ảnh/video → GitHub</button>
+      <button class="nav-btn" id="ghIdbImport">☁⬇ Ảnh/video ← GitHub</button>
     </div>
   </div>
 </div>
@@ -1191,6 +1193,16 @@ function idbPut(k, v) {
 function idbDel(k) {
   if (!IDB) return;
   try { IDB.transaction("img", "readwrite").objectStore("img").delete(k); } catch (e) {}
+}
+function idbKeys() {
+  return new Promise(res => {
+    if (!IDB) return res([]);
+    try {
+      const rq = IDB.transaction("img").objectStore("img").getAllKeys();
+      rq.onsuccess = () => res(rq.result || []);
+      rq.onerror = () => res([]);
+    } catch (e) { res([]); }
+  });
 }
 const imgPicker = document.createElement("input");
 imgPicker.type = "file"; imgPicker.accept = "image/*"; imgPicker.hidden = true;
@@ -3386,13 +3398,18 @@ async function ghPull() {
 let ghTimer = null, ghBusy = false;
 function ghPushSoon() { clearTimeout(ghTimer); ghTimer = setTimeout(ghPush, 3000); }
 const GH_SQLITE_API = "https://api.github.com/repos/haipk/learn-english/contents/data/dinob-data.sqlite";
-async function ghPutFile(api, contentB64, tok) {
-  const cur = await fetch(api + "?ref=main", { headers: { Authorization: "Bearer " + tok } });
-  const sha = cur.ok ? (await cur.json()).sha : undefined;
+const GH_IDB_DIR = "https://api.github.com/repos/haipk/learn-english/contents/data/idb";
+async function ghPutFile(api, contentB64, tok, sha) {
+  if (sha === undefined) {
+    const cur = await fetch(api + "?ref=main", { headers: { Authorization: "Bearer " + tok } });
+    sha = cur.ok ? (await cur.json()).sha : undefined;
+  }
+  const body = { message: "Sync app data", content: contentB64, branch: "main" };
+  if (sha) body.sha = sha;
   const r = await fetch(api, {
     method: "PUT",
     headers: { Authorization: "Bearer " + tok, "Content-Type": "application/json" },
-    body: JSON.stringify({ message: "Sync app data", content: contentB64, sha, branch: "main" }),
+    body: JSON.stringify(body),
   });
   return r.ok;
 }
@@ -3428,6 +3445,62 @@ $("ghDbImport").onclick = async () => {   // repo public -> đọc không cần 
   _lsSet("dinob_sqlite", u8b64(new Uint8Array(await r.arrayBuffer())));
   sessionStorage.removeItem("dinob_reloaded");
   location.reload();
+};
+/* ---------- đồng bộ ảnh/video IndexedDB <-> GitHub ----------
+   Mỗi record trong IndexedDB "dinob_img" (ảnh upload idb:*, video vid:*)
+   -> 1 file data/idb/<base64url(key)>.bin trong repo. So khớp nội dung
+   bằng SHA-1 dạng git blob nên chỉ đẩy/tải file khác biệt. Nút ☁⬆ cần
+   token; ☁⬇ tải qua download_url (repo public -> không cần token). */
+const b64url = s => btoa(unescape(encodeURIComponent(s))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const unb64url = s => decodeURIComponent(escape(atob(s.replace(/-/g, "+").replace(/_/g, "/"))));
+async function gitSha(blob) {   // = field "sha" GitHub trả về: sha1("blob <n>\0" + data)
+  const b = new Uint8Array(await blob.arrayBuffer());
+  const head = new TextEncoder().encode("blob " + b.length + "\0");
+  const all = new Uint8Array(head.length + b.length);
+  all.set(head); all.set(b, head.length);
+  const h = await crypto.subtle.digest("SHA-1", all.buffer);
+  return [...new Uint8Array(h)].map(x => x.toString(16).padStart(2, "0")).join("");
+}
+const GH_MEDIA_MAX = 45 * 1024 * 1024;   // file >45MB bỏ qua (giới hạn Contents API)
+$("ghIdbExport").onclick = async () => {
+  const tok = ghToken();
+  if (!tok) { alert("Nhập GitHub token rồi bấm 🔗 Lưu token trước."); return; }
+  if (!IDB) { alert("IndexedDB chưa sẵn sàng."); return; }
+  const st = $("ghStatus"), keys = await idbKeys();
+  if (!keys.length) { st.textContent = "☁ Không có ảnh/video nào."; return; }
+  const remote = {};
+  const dir = await fetch(GH_IDB_DIR + "?ref=main", { headers: { Authorization: "Bearer " + tok } });
+  if (dir.ok) for (const f of await dir.json()) remote[f.name] = f;
+  let done = 0, up = 0, skip = 0;
+  for (const k of keys) {
+    st.textContent = `☁ Media ${++done}/${keys.length}…`;
+    const v = await idbGet(k);
+    if (v == null) continue;
+    const blob = v instanceof Blob ? v : new Blob([v]);
+    if (blob.size > GH_MEDIA_MAX) { skip++; continue; }
+    const name = b64url(k) + ".bin";
+    if (remote[name] && remote[name].sha === (await gitSha(blob))) continue;
+    if (await ghPutFile(GH_IDB_DIR + "/" + name, u8b64(new Uint8Array(await blob.arrayBuffer())), tok, remote[name]?.sha || null)) up++;
+  }
+  st.textContent = `☁ Media → GitHub ✓ (${up} file mới${skip ? `, bỏ qua ${skip} file >45MB` : ""})`;
+};
+$("ghIdbImport").onclick = async () => {
+  if (!IDB) { alert("IndexedDB chưa sẵn sàng."); return; }
+  const st = $("ghStatus");
+  const dir = await fetch(GH_IDB_DIR + "?ref=main");
+  if (!dir.ok) { alert("Chưa có ảnh/video trên GitHub — bấm ☁⬆ ở máy có dữ liệu trước."); return; }
+  const files = (await dir.json()).filter(f => f.name.endsWith(".bin"));
+  let n = 0, done = 0;
+  for (const f of files) {
+    st.textContent = `☁ Tải media ${++done}/${files.length}…`;
+    const k = unb64url(f.name.slice(0, -4));
+    const cur = await idbGet(k);
+    if (cur instanceof Blob && (await gitSha(cur)) === f.sha) continue;
+    const r = await fetch(f.download_url);
+    if (r.ok) { idbPut(k, await r.blob()); n++; }
+  }
+  if (n) { sessionStorage.removeItem("dinob_reloaded"); location.reload(); }
+  else st.textContent = "☁ Media ← GitHub ✓ (không có gì mới)";
 };
 $("ghSave").onclick = async () => {
   const v = $("ghToken").value.trim();

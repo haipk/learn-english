@@ -278,7 +278,10 @@ with the word data. Resolution order in `renderImage(wrap, ex, key)`:
 4. Otherwise the emoji fallback shows (no upload UI on the card itself).
 
 Uploaded images live in the browser's IndexedDB (offline-friendly, large
-quota) — they are NOT included in the SQLite export. Images use
+quota) — they are NOT included in the SQLite export. The admin-only
+☁⬆/☁⬇ Ảnh/video buttons on the home screen back them up to / restore
+them from `data/idb/<base64url(key)>.bin` on GitHub (same for `vid:*`
+recordings, files >45MB are skipped). Images use
 `mix-blend-mode: multiply` so white backgrounds blend into the card's
 grid-paper (looks drawn on, not pasted).
 
