@@ -3389,14 +3389,23 @@ async function ghPull() {
       if (v !== local) { _lsSet(k, v); diff = true; }
       if (v !== data[k]) needPush = true;
     }
-    if (diff && !sessionStorage.getItem("dinob_reloaded")) {
-      sessionStorage.setItem("dinob_reloaded", "1");
-      location.reload();
-    } else if (needPush) ghPushSoon();   // local đầy đủ hơn remote -> đẩy bản đầy đủ lên lại
+    if (diff) {
+      const n = +(sessionStorage.getItem("dinob_ghrel") || 0);
+      if (n < 3) {   // tối đa 3 lần reload/phiên — tránh vòng lặp hydrate-reload vô hạn
+        sessionStorage.setItem("dinob_ghrel", String(n + 1));
+        location.reload();
+        return;
+      }
+    }
+    if (needPush) ghPushSoon();   // local đầy đủ hơn remote -> đẩy bản đầy đủ lên lại
   } catch (e) { /* offline / chưa có file -> dùng localStorage */ }
 }
-let ghTimer = null, ghBusy = false;
-function ghPushSoon() { clearTimeout(ghTimer); ghTimer = setTimeout(ghPush, 3000); }
+let ghTimer = null, ghBusy = false, ghLastPush = 0;
+const GH_MIN_GAP = 60000;   // tối đa 1 push/phút — chống bão commit khi ghi liên tục
+function ghPushSoon() {
+  clearTimeout(ghTimer);
+  ghTimer = setTimeout(ghPush, Math.max(3000, GH_MIN_GAP - (Date.now() - ghLastPush)));
+}
 const GH_SQLITE_API = "https://api.github.com/repos/haipk/learn-english/contents/data/dinob-data.sqlite";
 const GH_IDB_DIR = "https://api.github.com/repos/haipk/learn-english/contents/data/idb";
 async function ghPutFile(api, contentB64, tok, sha) {
@@ -3424,12 +3433,23 @@ async function ghPush(again) {
       const k = localStorage.key(i);
       if (!GH_SKIP.has(k)) payload[k] = localStorage.getItem(k);
     }
-    ok = await ghPutFile(GH_API, btoa(unescape(encodeURIComponent(JSON.stringify(payload)))), tok);
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+    const cur = await fetch(GH_API + "?ref=main", { headers: { Authorization: "Bearer " + tok } });
+    const curJ = cur.ok ? await cur.json() : {};
+    if (curJ.content && curJ.content.replace(/\n/g, "") === content) {   // trùng remote -> khỏi commit
+      ghBusy = false;
+      return true;
+    }
+    ok = await ghPutFile(GH_API, content, tok, cur.ok ? curJ.sha : null);
+    if (ok) ghLastPush = Date.now();
     ghBusy = false;
     if (!ok && again !== false) ok = await ghPush(false);   // sha cũ do máy khác vừa ghi -> thử lại 1 lần
   } catch (e) { ghBusy = false; }
   return ok;
 }
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") ghPush();   // đẩy nốt trước khi ẩn/đóng tab
+});
 $("ghDbExport").onclick = async () => {   // ghi file .sqlite thật lên repo — mở được bằng DB Browser
   if (!DB) { alert("SQLite chưa sẵn sàng (cần internet tải thư viện lần đầu)."); return; }
   const tok = ghToken();
