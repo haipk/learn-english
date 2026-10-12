@@ -876,6 +876,8 @@
       <span class="hint" id="ghStatus"></span>
       <input id="ghToken" type="password" placeholder="GitHub token (PAT)" autocomplete="off">
       <button class="nav-btn" id="ghSave">🔗 Lưu token</button>
+      <button class="nav-btn" id="ghDbExport">☁⬆ .sqlite → GitHub</button>
+      <button class="nav-btn" id="ghDbImport">☁⬇ .sqlite ← GitHub</button>
     </div>
   </div>
 </div>
@@ -3250,12 +3252,14 @@ $("userName").onclick = () => { renderLogin(); $("loginScreen").classList.add("o
 let DB = null;
 const _lsSet = localStorage.setItem.bind(localStorage);
 const _lsDel = localStorage.removeItem.bind(localStorage);
+const u8b64 = b => {   // Uint8Array -> base64 (chia chunk tránh tràn tham số)
+  let s = "";
+  for (let i = 0; i < b.length; i += 8192) s += String.fromCharCode(...b.subarray(i, i + 8192));
+  return btoa(s);
+};
 function persistDB() {
   if (!DB) return;
-  const bin = DB.export();
-  let s = "";
-  for (let i = 0; i < bin.length; i += 8192) s += String.fromCharCode(...bin.subarray(i, i + 8192));
-  _lsSet("dinob_sqlite", btoa(s));
+  _lsSet("dinob_sqlite", u8b64(DB.export()));
 }
 function dbPut(k, v) { DB.run("INSERT OR REPLACE INTO kv(k,v) VALUES(?,?)", [k, v]); }
 localStorage.setItem = (k, v) => {
@@ -3314,10 +3318,7 @@ $("dbImport").onchange = e => {
   const f = e.target.files[0];
   if (!f) return;
   f.arrayBuffer().then(buf => {
-    const b = new Uint8Array(buf);
-    let s = "";
-    for (let i = 0; i < b.length; i += 8192) s += String.fromCharCode(...b.subarray(i, i + 8192));
-    _lsSet("dinob_sqlite", btoa(s));
+    _lsSet("dinob_sqlite", u8b64(new Uint8Array(buf)));
     sessionStorage.removeItem("dinob_reloaded");
     location.reload();
   });
@@ -3331,7 +3332,8 @@ initDB();   // không chặn khởi động — app chạy ngay trên localStora
    write trên đúng repo này — nhập 1 lần ở trang chủ, lưu vào
    localStorage["dinob_ghtoken"]) mới ghi được. Pull chạy khi mở app (dữ liệu
    khác thì hydrate rồi reload 1 lần như SQLite); push debounce 3s sau mỗi
-   lần localStorage thay đổi. */
+   lần localStorage thay đổi. Nút ☁⬆/☁⬇ ghi/đọc thêm file nhị phân
+   data/dinob-data.sqlite — bản backup mở được bằng DB Browser / sqlite3. */
 const GH_API = "https://api.github.com/repos/haipk/learn-english/contents/data/app-data.json";
 const GH_SKIP = new Set(["dinob_sqlite", "dinob_ghtoken"]);
 const ghToken = () => localStorage.getItem("dinob_ghtoken") || "";
@@ -3352,6 +3354,17 @@ async function ghPull() {
 }
 let ghTimer = null, ghBusy = false;
 function ghPushSoon() { clearTimeout(ghTimer); ghTimer = setTimeout(ghPush, 3000); }
+const GH_SQLITE_API = "https://api.github.com/repos/haipk/learn-english/contents/data/dinob-data.sqlite";
+async function ghPutFile(api, contentB64, tok) {
+  const cur = await fetch(api + "?ref=main", { headers: { Authorization: "Bearer " + tok } });
+  const sha = cur.ok ? (await cur.json()).sha : undefined;
+  const r = await fetch(api, {
+    method: "PUT",
+    headers: { Authorization: "Bearer " + tok, "Content-Type": "application/json" },
+    body: JSON.stringify({ message: "Sync app data", content: contentB64, sha, branch: "main" }),
+  });
+  return r.ok;
+}
 async function ghPush(again) {
   const tok = ghToken();
   if (!tok || ghBusy) return false;
@@ -3363,23 +3376,28 @@ async function ghPush(again) {
       const k = localStorage.key(i);
       if (!GH_SKIP.has(k)) payload[k] = localStorage.getItem(k);
     }
-    const cur = await fetch(GH_API + "?ref=main", { headers: { Authorization: "Bearer " + tok } });
-    const sha = cur.ok ? (await cur.json()).sha : undefined;
-    const r = await fetch(GH_API, {
-      method: "PUT",
-      headers: { Authorization: "Bearer " + tok, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: "Sync app data",
-        content: btoa(unescape(encodeURIComponent(JSON.stringify(payload)))),
-        sha, branch: "main",
-      }),
-    });
-    ok = r.ok;
+    ok = await ghPutFile(GH_API, btoa(unescape(encodeURIComponent(JSON.stringify(payload)))), tok);
     ghBusy = false;
     if (!ok && again !== false) ok = await ghPush(false);   // sha cũ do máy khác vừa ghi -> thử lại 1 lần
   } catch (e) { ghBusy = false; }
   return ok;
 }
+$("ghDbExport").onclick = async () => {   // ghi file .sqlite thật lên repo — mở được bằng DB Browser
+  if (!DB) { alert("SQLite chưa sẵn sàng (cần internet tải thư viện lần đầu)."); return; }
+  const tok = ghToken();
+  if (!tok) { alert("Nhập GitHub token rồi bấm 🔗 Lưu token trước."); return; }
+  persistDB();
+  $("ghStatus").textContent = "☁ Đang ghi .sqlite…";
+  $("ghStatus").textContent = (await ghPutFile(GH_SQLITE_API, u8b64(DB.export()), tok))
+    ? "☁ .sqlite → GitHub ✓" : "⚠ Ghi thất bại — kiểm tra quyền token";
+};
+$("ghDbImport").onclick = async () => {   // repo public -> đọc không cần token
+  const r = await fetch(GH_SQLITE_API + "?ref=main", { headers: { Accept: "application/vnd.github.raw" } });
+  if (!r.ok) { alert("Chưa có file .sqlite trên GitHub — bấm ☁⬆ ở máy có dữ liệu trước."); return; }
+  _lsSet("dinob_sqlite", u8b64(new Uint8Array(await r.arrayBuffer())));
+  sessionStorage.removeItem("dinob_reloaded");
+  location.reload();
+};
 $("ghSave").onclick = async () => {
   const v = $("ghToken").value.trim();
   if (v) localStorage.setItem("dinob_ghtoken", v); else localStorage.removeItem("dinob_ghtoken");
