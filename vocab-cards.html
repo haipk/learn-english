@@ -3264,12 +3264,12 @@ function persistDB() {
 function dbPut(k, v) { DB.run("INSERT OR REPLACE INTO kv(k,v) VALUES(?,?)", [k, v]); }
 localStorage.setItem = (k, v) => {
   _lsSet(k, v);
-  if (DB) { dbPut(k, v); persistDB(); }
+  if (DB && k !== "dinob_ghtoken") { dbPut(k, v); persistDB(); }   // token không đưa vào DB/backup
   ghPushSoon();
 };
 localStorage.removeItem = k => {
   _lsDel(k);
-  if (DB) { DB.run("DELETE FROM kv WHERE k=?", [k]); persistDB(); }
+  if (DB && k !== "dinob_ghtoken") { DB.run("DELETE FROM kv WHERE k=?", [k]); persistDB(); }
   ghPushSoon();
 };
 async function initDB() {
@@ -3279,6 +3279,8 @@ async function initDB() {
     if (saved) {
       DB = new SQL.Database(Uint8Array.from(atob(saved), c => c.charCodeAt(0)));
       DB.run("CREATE TABLE IF NOT EXISTS kv(k TEXT PRIMARY KEY, v TEXT)");
+      DB.run("DELETE FROM kv WHERE k='dinob_ghtoken'");   // dọn token lỡ lọt vào DB cũ
+      persistDB();
       // đồng bộ ngược DB -> localStorage (ví dụ sau khi nhập file .sqlite)
       let diff = false;
       const res = DB.exec("SELECT k,v FROM kv");
@@ -3296,7 +3298,7 @@ async function initDB() {
       DB.run("CREATE TABLE IF NOT EXISTS kv(k TEXT PRIMARY KEY, v TEXT)");
       for (let i = 0; i < localStorage.length; i++) {   // migrate dữ liệu cũ vào SQLite
         const k = localStorage.key(i);
-        if (k !== "dinob_sqlite") dbPut(k, localStorage.getItem(k));
+        if (k !== "dinob_sqlite" && k !== "dinob_ghtoken") dbPut(k, localStorage.getItem(k));
       }
       persistDB();
     }
@@ -3337,19 +3339,48 @@ initDB();   // không chặn khởi động — app chạy ngay trên localStora
 const GH_API = "https://api.github.com/repos/haipk/learn-english/contents/data/app-data.json";
 const GH_SKIP = new Set(["dinob_sqlite", "dinob_ghtoken"]);
 const ghToken = () => localStorage.getItem("dinob_ghtoken") || "";
+/* Remote rỗng (mảng/object trống) không được ghi đè local đang có dữ liệu;
+   vocab_users merge theo từng học viên + từng unit (local thắng khi trùng)
+   — tránh mất dữ liệu khi một máy đẩy bản trống lên trước. */
+const ghEmpty = v => {
+  try { const o = JSON.parse(v); return o && typeof o === "object" && !Object.keys(o).length; }
+  catch (e) { return false; }
+};
+function ghMerge(k, remote, local) {
+  if (local == null) return remote;
+  if (k === "vocab_users") {
+    try {
+      const r = JSON.parse(remote), l = JSON.parse(local);
+      l.users = l.users || {};
+      for (const n in (r.users || {})) {
+        const m = Object.assign({}, r.users[n], l.users[n] || {});
+        m.progress = Object.assign({}, (r.users[n] || {}).progress, (l.users[n] || {}).progress);
+        l.users[n] = m;
+      }
+      if (!l.current) l.current = r.current;
+      return JSON.stringify(l);
+    } catch (e) { return local; }
+  }
+  return ghEmpty(remote) && !ghEmpty(local) ? local : remote;
+}
 async function ghPull() {
   try {
     const r = await fetch(GH_API + "?ref=main", { headers: { Accept: "application/vnd.github.raw" } });
     if (!r.ok) return;
     const data = await r.json();
     if (!data || typeof data !== "object") return;
-    let diff = false;
-    for (const k in data)
-      if (!GH_SKIP.has(k) && localStorage.getItem(k) !== data[k]) { _lsSet(k, data[k]); diff = true; }
+    let diff = false, needPush = false;
+    for (const k in data) {
+      if (GH_SKIP.has(k)) continue;
+      const local = localStorage.getItem(k);
+      const v = ghMerge(k, data[k], local);
+      if (v !== local) { _lsSet(k, v); diff = true; }
+      if (v !== data[k]) needPush = true;
+    }
     if (diff && !sessionStorage.getItem("dinob_reloaded")) {
       sessionStorage.setItem("dinob_reloaded", "1");
       location.reload();
-    }
+    } else if (needPush) ghPushSoon();   // local đầy đủ hơn remote -> đẩy bản đầy đủ lên lại
   } catch (e) { /* offline / chưa có file -> dùng localStorage */ }
 }
 let ghTimer = null, ghBusy = false;
