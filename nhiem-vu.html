@@ -560,8 +560,8 @@ let confirmCallback=null;
 let scheduleView='week';
 let weekCursor=new Date();
 let dayCursor=new Date();
-const urlParams=new URLSearchParams(location.search);
-const isAdminMode=urlParams.get('admin')==='1';
+// Nhận cờ admin từ parent window (khi nhúng qua srcdoc) hoặc query string (khi chạy độc lập)
+const isAdminMode=(window.dinobAdminMode!=null?!!window.dinobAdminMode:new URLSearchParams(location.search).get('admin')==='1');
 const perUserMode=!isAdminMode;
 
 function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(data))}
