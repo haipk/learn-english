@@ -1,0 +1,402 @@
+{
+  "book": "Essential Vocabulary In Context - Book 2",
+  "unit": 4,
+  "topic": "In the living room",
+  "words": [
+    {
+      "word": "carpet",
+      "ipa": "/ˈkɑːpɪt/",
+      "meaning": "a <span class=\"hl\">SOFT</span> <span class=\"hl\">COVERING</span> for the <span class=\"hl\">FLOOR</span> of a room",
+      "keywords": [
+        "SOFT!",
+        "COVERING!",
+        "FLOOR!"
+      ],
+      "examples": [
+        {
+          "text": "We have a soft blue [carpet] on our living room floor.",
+          "img": "idb:u4muxrukmxggjml",
+          "quote": "",
+          "emoji": "🖼️"
+        }
+      ]
+    },
+    {
+      "word": "chair",
+      "ipa": "/tʃeə(r)/",
+      "meaning": "a <span class=\"hl\">PIECE</span> of <span class=\"hl\">FURNITURE</span> for one <span class=\"hl\">PERSON</span> to sit on, with a part that they can rest their back against",
+      "keywords": [
+        "PIECE!",
+        "FURNITURE!",
+        "PERSON!"
+      ],
+      "examples": [
+        {
+          "text": "Grandad sat on a comfortable [chair] by the window.",
+          "img": "idb:u4muxrukocsols9",
+          "quote": "",
+          "emoji": "🖼️"
+        }
+      ]
+    },
+    {
+      "word": "curtain",
+      "ipa": "/ˈkɜːtn/",
+      "meaning": "a <span class=\"hl\">PIECE</span> of <span class=\"hl\">FABRIC</span> <span class=\"hl\">HANGING</span> over a window that can be pulled to one side to let light in",
+      "keywords": [
+        "PIECE!",
+        "FABRIC!",
+        "HANGING!"
+      ],
+      "examples": [
+        {
+          "text": "Pull the yellow [curtain] back to let the morning sunlight in.",
+          "img": "idb:u4muxrukowk64mk",
+          "quote": "",
+          "emoji": "🖼️"
+        }
+      ]
+    },
+    {
+      "word": "cushion",
+      "ipa": "/ˈkʊʃn/",
+      "meaning": "a <span class=\"hl\">SOFT</span> <span class=\"hl\">PAD</span> <span class=\"hl\">COVERED</span> with fabric",
+      "keywords": [
+        "SOFT!",
+        "PAD!",
+        "COVERED!"
+      ],
+      "examples": [
+        {
+          "text": "There are three soft green [cushion]s on our sofa.",
+          "img": "idb:u4muxrukpejzjr0",
+          "quote": "",
+          "emoji": "🖼️"
+        }
+      ]
+    },
+    {
+      "word": "fireplace",
+      "ipa": "/ˈfaɪəpleɪs/",
+      "meaning": "a <span class=\"hl\">SPACE</span> in a <span class=\"hl\">WALL</span> for a <span class=\"hl\">FIRE</span>, and the parts around it",
+      "keywords": [
+        "SPACE!",
+        "WALL!",
+        "FIRE!"
+      ],
+      "examples": [
+        {
+          "text": "The sleeping cat lay warm near the stone [fireplace].",
+          "img": "idb:u4muxrukpqbsqo3",
+          "quote": "",
+          "emoji": "🖼️"
+        }
+      ]
+    },
+    {
+      "word": "furniture",
+      "ipa": "/ˈfɜːnɪtʃə(r)/",
+      "meaning": "the <span class=\"hl\">THINGS</span> in a <span class=\"hl\">ROOM</span> that you <span class=\"hl\">SIT</span> or lie on (such as a chair or a bed) or that you put things in or on (such as a cupboard or a table)",
+      "keywords": [
+        "THINGS!",
+        "ROOM!",
+        "SIT!"
+      ],
+      "examples": [
+        {
+          "text": "My parents bought some cool new wooden [furniture] for the room.",
+          "img": "idb:u4muxrukpwysci5",
+          "quote": "",
+          "emoji": "🖼️"
+        }
+      ]
+    },
+    {
+      "word": "lamp",
+      "ipa": "/læmp/",
+      "meaning": "an <span class=\"hl\">OBJECT</span> that <span class=\"hl\">MAKES</span> a <span class=\"hl\">ROOM</span> brighter and is not attached to a wall or ceiling",
+      "keywords": [
+        "OBJECT!",
+        "MAKES!",
+        "ROOM!"
+      ],
+      "examples": [
+        {
+          "text": "I turned on the small desk [lamp] to read my comic book.",
+          "img": "idb:u4muxrukq7coso6",
+          "quote": "",
+          "emoji": "🖼️"
+        }
+      ]
+    },
+    {
+      "word": "light",
+      "ipa": "/laɪt/",
+      "meaning": "an <span class=\"hl\">OBJECT</span> <span class=\"hl\">ATTACHED</span> to a <span class=\"hl\">CEILING</span> or wall that makes a room brighter",
+      "keywords": [
+        "OBJECT!",
+        "ATTACHED!",
+        "CEILING!"
+      ],
+      "examples": [
+        {
+          "text": "Switch on the ceiling [light] because it is getting dark outside.",
+          "img": "idb:u4muxrukqikqf5w",
+          "quote": "",
+          "emoji": "🖼️"
+        }
+      ]
+    },
+    {
+      "word": "listen",
+      "ipa": "/ˈlɪsn/",
+      "meaning": "to <span class=\"hl\">HEAR</span> and <span class=\"hl\">PAY</span> <span class=\"hl\">ATTENTION</span> to sounds",
+      "keywords": [
+        "HEAR!",
+        "PAY!",
+        "ATTENTION!"
+      ],
+      "examples": [
+        {
+          "text": "I like to [listen] to happy music on my radio.",
+          "img": "idb:u4muxrukqqmbt76",
+          "quote": "",
+          "emoji": "🖼️"
+        }
+      ]
+    },
+    {
+      "word": "living room",
+      "ipa": "/ˈlɪvɪŋ ruːm/",
+      "meaning": "a <span class=\"hl\">ROOM</span> where you <span class=\"hl\">CAN</span> <span class=\"hl\">PLAY</span>, watch television, talk to visitors, etc",
+      "keywords": [
+        "ROOM!",
+        "CAN!",
+        "PLAY!"
+      ],
+      "examples": [
+        {
+          "text": "Our family sat in the [living room] to watch a movie together.",
+          "img": "idb:u4muxrukr3cvjm9",
+          "quote": "",
+          "emoji": "🖼️"
+        }
+      ]
+    },
+    {
+      "word": "picture",
+      "ipa": "/ˈpɪktʃə(r)/",
+      "meaning": "a <span class=\"hl\">PAINTING</span> or <span class=\"hl\">DRAWING</span> in a <span class=\"hl\">FRAME</span> that you can hang on a wall",
+      "keywords": [
+        "PAINTING!",
+        "DRAWING!",
+        "FRAME!"
+      ],
+      "examples": [
+        {
+          "text": "There is a [picture] of a fast sports car on my wall.",
+          "img": "idb:u4muxrukrlweiva",
+          "quote": "",
+          "emoji": "🖼️"
+        }
+      ]
+    },
+    {
+      "word": "play",
+      "ipa": "/pleɪ/",
+      "meaning": "to do something <span class=\"hl\">NICE</span> for <span class=\"hl\">FUN</span>",
+      "keywords": [
+        "NICE!",
+        "FUN!"
+      ],
+      "examples": [
+        {
+          "text": "Sam and Ben [play] with their toy robots on the rug.",
+          "img": "idb:u4muxrukruyt6s5",
+          "quote": "",
+          "emoji": "🖼️"
+        }
+      ]
+    },
+    {
+      "word": "radio",
+      "ipa": "/ˈreɪdiəʊ/",
+      "meaning": "a <span class=\"hl\">THING</span> that <span class=\"hl\">BRINGS</span> you <span class=\"hl\">SOUNDS</span>, such as music and news programmes, from far away",
+      "keywords": [
+        "THING!",
+        "BRINGS!",
+        "SOUNDS!"
+      ],
+      "examples": [
+        {
+          "text": "Grandad listened to the football news on the [radio].",
+          "img": "idb:u4muxruks3bohzl",
+          "quote": "",
+          "emoji": "🖼️"
+        }
+      ]
+    },
+    {
+      "word": "rug",
+      "ipa": "/rʌɡ/",
+      "meaning": "a <span class=\"hl\">SOFT</span> <span class=\"hl\">COVERING</span> for <span class=\"hl\">PART</span> of the floor of a room",
+      "keywords": [
+        "SOFT!",
+        "COVERING!",
+        "PART!"
+      ],
+      "examples": [
+        {
+          "text": "The dog curled up and slept on the small red [rug].",
+          "img": "idb:u4muxrukshmz1sv",
+          "quote": "",
+          "emoji": "🖼️"
+        }
+      ]
+    },
+    {
+      "word": "sit",
+      "ipa": "/sɪt/",
+      "meaning": "(<span class=\"hl\">SITS</span>, <span class=\"hl\">SITTING</span>, <span class=\"hl\">SAT</span>, sat) to rest with your bottom on something, such as a chair or the floor",
+      "keywords": [
+        "SITS!",
+        "SITTING!",
+        "SAT!"
+      ],
+      "examples": [
+        {
+          "text": "You can [sit] on the soft sofa next to me.",
+          "img": "idb:u4muxrukt6w0aqn",
+          "quote": "",
+          "emoji": "🖼️"
+        }
+      ]
+    },
+    {
+      "word": "sofa",
+      "ipa": "/ˈsəʊfə/",
+      "meaning": "a <span class=\"hl\">LONG</span> <span class=\"hl\">COMFORTABLE</span> <span class=\"hl\">PIECE</span> of furniture that more than one person can sit on",
+      "keywords": [
+        "LONG!",
+        "COMFORTABLE!",
+        "PIECE!"
+      ],
+      "examples": [
+        {
+          "text": "Three children can sit together on this long [sofa].",
+          "img": "idb:u4muxruktfi5ev3",
+          "quote": "",
+          "emoji": "🖼️"
+        }
+      ]
+    },
+    {
+      "word": "stool",
+      "ipa": "/stuːl/",
+      "meaning": "a <span class=\"hl\">PIECE</span> of <span class=\"hl\">FURNITURE</span> <span class=\"hl\">LIKE</span> a small chair with no back",
+      "keywords": [
+        "PIECE!",
+        "FURNITURE!",
+        "LIKE!"
+      ],
+      "examples": [
+        {
+          "text": "My little sister sat on a wooden [stool] to reach her books.",
+          "img": "idb:u4muxruktl51ip4",
+          "quote": "",
+          "emoji": "🖼️"
+        }
+      ]
+    },
+    {
+      "word": "talk",
+      "ipa": "/tɔːk/",
+      "meaning": "to <span class=\"hl\">SAY</span> <span class=\"hl\">THINGS</span> to someone and <span class=\"hl\">LISTEN</span> to what they say",
+      "keywords": [
+        "SAY!",
+        "THINGS!",
+        "LISTEN!"
+      ],
+      "examples": [
+        {
+          "text": "We love to [talk] about football during school lunchtime.",
+          "img": "idb:u4muxruktxhcfyu",
+          "quote": "",
+          "emoji": "🖼️"
+        }
+      ]
+    },
+    {
+      "word": "telephone",
+      "ipa": "/ˈtelɪfəʊn/",
+      "meaning": "a <span class=\"hl\">THING</span> <span class=\"hl\">USED</span> to <span class=\"hl\">TALK</span> to someone far away",
+      "keywords": [
+        "THING!",
+        "USED!",
+        "TALK!"
+      ],
+      "examples": [
+        {
+          "text": "The [telephone] rang while we were having our lunch.",
+          "img": "idb:u4muxruku9fuyw2",
+          "quote": "",
+          "emoji": "🖼️"
+        }
+      ]
+    },
+    {
+      "word": "television",
+      "ipa": "/ˈtelɪvɪʒn/",
+      "meaning": "a <span class=\"hl\">THING</span> that <span class=\"hl\">BRINGS</span> you <span class=\"hl\">MOVING</span> pictures, and the sounds that go with them, from far away",
+      "keywords": [
+        "THING!",
+        "BRINGS!",
+        "MOVING!"
+      ],
+      "examples": [
+        {
+          "text": "We turned off the [television] and went outside to play.",
+          "img": "idb:u4muxrukuiqn326",
+          "quote": "",
+          "emoji": "🖼️"
+        }
+      ]
+    },
+    {
+      "word": "watch",
+      "ipa": "/wɒtʃ/",
+      "meaning": "to <span class=\"hl\">SEE</span> and <span class=\"hl\">PAY</span> <span class=\"hl\">ATTENTION</span> to a programme on television",
+      "keywords": [
+        "SEE!",
+        "PAY!",
+        "ATTENTION!"
+      ],
+      "examples": [
+        {
+          "text": "I want to [watch] a funny cartoon after finishing my homework.",
+          "img": "idb:u4muxrukutecgvi",
+          "quote": "",
+          "emoji": "🖼️"
+        }
+      ]
+    },
+    {
+      "word": "windowsill",
+      "ipa": "/ˈwɪndəʊsɪl/",
+      "meaning": "a <span class=\"hl\">NARROW</span> <span class=\"hl\">FLAT</span> <span class=\"hl\">SURFACE</span> at the bottom of a window that you can put things on",
+      "keywords": [
+        "NARROW!",
+        "FLAT!",
+        "SURFACE!"
+      ],
+      "examples": [
+        {
+          "text": "My mum put three small flower pots on the [windowsill].",
+          "img": "idb:u4muxrukv3ht9qw",
+          "quote": "",
+          "emoji": "🖼️"
+        }
+      ]
+    }
+  ]
+}
