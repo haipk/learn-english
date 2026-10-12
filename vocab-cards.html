@@ -3351,29 +3351,33 @@ initDB();   // không chặn khởi động — app chạy ngay trên localStora
 const GH_API = "https://api.github.com/repos/haipk/learn-english/contents/data/app-data.json";
 const GH_SKIP = new Set(["dinob_sqlite", "dinob_ghtoken"]);
 const ghToken = () => localStorage.getItem("dinob_ghtoken") || "";
-/* Remote rỗng (mảng/object trống) không được ghi đè local đang có dữ liệu;
-   vocab_users merge theo từng học viên + từng unit (local thắng khi trùng)
-   — tránh mất dữ liệu khi một máy đẩy bản trống lên trước. */
+/* Merge union 2 phía (dùng cho cả pull lẫn push): object gộp theo key đệ
+   quy, mảng gộp khử trùng theo giá trị, scalar local thắng; phía rỗng
+   (mảng/object trống) không bao giờ đè phía có dữ liệu — máy đẩy bản
+   trống/stale lên không làm remote bị thu nhỏ. Đổi lại: xóa phần tử trên
+   1 máy có thể "hồi sinh" từ máy khác (xóa hẳn thì sửa app-data.json). */
 const ghEmpty = v => {
   try { const o = JSON.parse(v); return o && typeof o === "object" && !Object.keys(o).length; }
   catch (e) { return false; }
 };
-function ghMerge(k, remote, local) {
-  if (local == null) return remote;
-  if (k === "vocab_users") {
-    try {
-      const r = JSON.parse(remote), l = JSON.parse(local);
-      l.users = l.users || {};
-      for (const n in (r.users || {})) {
-        const m = Object.assign({}, r.users[n], l.users[n] || {});
-        m.progress = Object.assign({}, (r.users[n] || {}).progress, (l.users[n] || {}).progress);
-        l.users[n] = m;
-      }
-      if (!l.current) l.current = r.current;
-      return JSON.stringify(l);
-    } catch (e) { return local; }
+const ghIsObj = o => o && typeof o === "object" && !Array.isArray(o);
+function ghDeepMerge(r, l) {
+  if (ghIsObj(r) && ghIsObj(l)) {
+    const o = Object.assign({}, r);
+    for (const k in l) o[k] = (k in r) ? ghDeepMerge(r[k], l[k]) : l[k];
+    return o;
   }
-  return ghEmpty(remote) && !ghEmpty(local) ? local : remote;
+  if (Array.isArray(r) && Array.isArray(l)) {
+    const sig = x => JSON.stringify(x), ls = new Set(l.map(sig));
+    return [...l, ...r.filter(x => !ls.has(sig(x)))];
+  }
+  return l;
+}
+function ghMerge(k, remote, local) {
+  if (remote == null || ghEmpty(remote)) return local;
+  if (local == null || ghEmpty(local)) return remote;
+  try { return JSON.stringify(ghDeepMerge(JSON.parse(remote), JSON.parse(local))); }
+  catch (e) { return local; }
 }
 async function ghPull() {
   try {
@@ -3433,10 +3437,15 @@ async function ghPush(again) {
       const k = localStorage.key(i);
       if (!GH_SKIP.has(k)) payload[k] = localStorage.getItem(k);
     }
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
     const cur = await fetch(GH_API + "?ref=main", { headers: { Authorization: "Bearer " + tok } });
     const curJ = cur.ok ? await cur.json() : {};
-    if (curJ.content && curJ.content.replace(/\n/g, "") === content) {   // trùng remote -> khỏi commit
+    let remote = {};
+    if (curJ.content) try { remote = JSON.parse(decodeURIComponent(escape(atob(curJ.content.replace(/\s/g, ""))))); } catch (e) {}
+    const merged = {};
+    for (const k of new Set([...Object.keys(remote), ...Object.keys(payload)]))
+      if (!GH_SKIP.has(k)) merged[k] = ghMerge(k, remote[k], payload[k]);
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(merged))));
+    if (curJ.content && curJ.content.replace(/\n/g, "") === content) {   // merge xong trùng remote -> khỏi commit
       ghBusy = false;
       return true;
     }
