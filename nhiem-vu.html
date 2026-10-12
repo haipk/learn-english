@@ -1093,9 +1093,13 @@ function renderParentTasksForDate(){
   if(!tasks.length){list.innerHTML='<div class="empty">Không có nhiệm vụ trong ngày này.</div>';return}
   tasks.forEach(t=>{
     const item=document.createElement('div');item.className='parent-task-item';
-    item.draggable=true;item.dataset.taskId=t.id;
+    item.draggable=false;item.dataset.taskId=t.id;
     const head=document.createElement('div');head.className='parent-task-head';
     const title=document.createElement('div');title.innerHTML=`<span class="drag-handle" title="Kéo để đổi thứ tự">⠿</span> <b>${safe(t.name)}</b><div class="note">${safe(t.subject||'')}</div>`;
+    const handle=title.querySelector('.drag-handle');
+    handle.addEventListener('click',e=>e.stopPropagation());
+    handle.addEventListener('mousedown',()=>{item.draggable=true});
+    handle.addEventListener('mouseup',()=>{item.draggable=false});
     const right=document.createElement('div');right.style.textAlign='right';
     const status=document.createElement('div');status.className='note';status.textContent=t.done?'✅ Đã hoàn thành':'⏳ Chưa hoàn thành';
     right.appendChild(status);
@@ -1263,6 +1267,7 @@ function renderParentTasksForDate(){
       list.insertBefore(dragging,(e.clientY-r.top)>r.height/2?item.nextSibling:item);
     });
     item.addEventListener('dragend',()=>{
+      item.draggable=false;
       item.classList.remove('dragging');
       applyParentTaskOrder(c,selectedParentTaskDate,list);
     });
