@@ -149,7 +149,11 @@
     font-family: "Shantell Sans", cursive; font-size: 18px; font-weight: 700;
     color: var(--accent); margin-top: 14px;
   }
-  .db-tools { display: flex; gap: 6px; align-items: center; margin-top: 22px; }
+  .db-tools { display: flex; gap: 6px; align-items: center; justify-content: center; flex-wrap: wrap; margin-top: 22px; }
+  .db-tools input[type=password] {
+    font-family: inherit; font-size: 14px; padding: 6px 10px; width: 220px;
+    border: 2px solid var(--ink); border-radius: 10px 4px 12px 4px;
+  }
   .book-card {
     display: block; width: 100%; text-align: left; cursor: pointer;
     font-family: "Shantell Sans", cursive; font-size: 20px; font-weight: 800;
@@ -869,6 +873,9 @@
       <button class="nav-btn" id="dbExport">💾 Xuất .sqlite</button>
       <button class="nav-btn" id="dbImportBtn">📥 Nhập .sqlite</button>
       <input type="file" id="dbImport" accept=".sqlite,.sqlite3,.db" hidden>
+      <span class="hint" id="ghStatus"></span>
+      <input id="ghToken" type="password" placeholder="GitHub token (PAT)" autocomplete="off">
+      <button class="nav-btn" id="ghSave">🔗 Lưu token</button>
     </div>
   </div>
 </div>
@@ -1828,6 +1835,7 @@ function openHome() {
   $("homeUser").textContent = store.current ? nameIcon(store.current) : "";
   $("homePhoto").src = (store.users[store.current] || {}).photo || "dinob.png";
   $("dbTools").hidden = !isAdmin();   // cụm SQLite chỉ dành cho admin
+  if (isAdmin() && ghToken()) $("ghStatus").textContent = "☁ GitHub ✓";
   $("homeScreen").classList.add("open");
 }
 $("homeBtn").onclick = openHome;
@@ -3253,10 +3261,12 @@ function dbPut(k, v) { DB.run("INSERT OR REPLACE INTO kv(k,v) VALUES(?,?)", [k, 
 localStorage.setItem = (k, v) => {
   _lsSet(k, v);
   if (DB) { dbPut(k, v); persistDB(); }
+  ghPushSoon();
 };
 localStorage.removeItem = k => {
   _lsDel(k);
   if (DB) { DB.run("DELETE FROM kv WHERE k=?", [k]); persistDB(); }
+  ghPushSoon();
 };
 async function initDB() {
   try {
@@ -3313,6 +3323,68 @@ $("dbImport").onchange = e => {
   });
 };
 initDB();   // không chặn khởi động — app chạy ngay trên localStorage
+
+/* ---------- đồng bộ GitHub ----------
+   Mọi key localStorage (trừ dinob_sqlite + token) được gộp thành file
+   data/app-data.json trong repo public — máy nào cũng đọc được, không cần
+   token. Chỉ máy admin có token (fine-grained PAT, quyền Contents: Read and
+   write trên đúng repo này — nhập 1 lần ở trang chủ, lưu vào
+   localStorage["dinob_ghtoken"]) mới ghi được. Pull chạy khi mở app (dữ liệu
+   khác thì hydrate rồi reload 1 lần như SQLite); push debounce 3s sau mỗi
+   lần localStorage thay đổi. */
+const GH_API = "https://api.github.com/repos/haipk/learn-english/contents/data/app-data.json";
+const GH_SKIP = new Set(["dinob_sqlite", "dinob_ghtoken"]);
+const ghToken = () => localStorage.getItem("dinob_ghtoken") || "";
+async function ghPull() {
+  try {
+    const r = await fetch(GH_API + "?ref=main", { headers: { Accept: "application/vnd.github.raw" } });
+    if (!r.ok) return;
+    const data = await r.json();
+    if (!data || typeof data !== "object") return;
+    let diff = false;
+    for (const k in data)
+      if (!GH_SKIP.has(k) && localStorage.getItem(k) !== data[k]) { _lsSet(k, data[k]); diff = true; }
+    if (diff && !sessionStorage.getItem("dinob_reloaded")) {
+      sessionStorage.setItem("dinob_reloaded", "1");
+      location.reload();
+    }
+  } catch (e) { /* offline / chưa có file -> dùng localStorage */ }
+}
+let ghTimer = null, ghBusy = false;
+function ghPushSoon() { clearTimeout(ghTimer); ghTimer = setTimeout(ghPush, 3000); }
+async function ghPush(again) {
+  const tok = ghToken();
+  if (!tok || ghBusy) return;
+  ghBusy = true;
+  try {
+    const payload = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!GH_SKIP.has(k)) payload[k] = localStorage.getItem(k);
+    }
+    const cur = await fetch(GH_API + "?ref=main", { headers: { Authorization: "Bearer " + tok } });
+    const sha = cur.ok ? (await cur.json()).sha : undefined;
+    const r = await fetch(GH_API, {
+      method: "PUT",
+      headers: { Authorization: "Bearer " + tok, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: "Sync app data",
+        content: btoa(unescape(encodeURIComponent(JSON.stringify(payload)))),
+        sha, branch: "main",
+      }),
+    });
+    ghBusy = false;
+    if (!r.ok && again !== false) ghPush(false);   // sha cũ do máy khác vừa ghi -> thử lại 1 lần
+  } catch (e) { ghBusy = false; }
+}
+$("ghSave").onclick = () => {
+  const v = $("ghToken").value.trim();
+  if (v) localStorage.setItem("dinob_ghtoken", v); else localStorage.removeItem("dinob_ghtoken");
+  $("ghToken").value = "";
+  $("ghStatus").textContent = v ? "☁ GitHub ✓" : "✖ Đã xóa token";
+  if (v) ghPush();   // đẩy dữ liệu hiện có lên repo ngay
+};
+ghPull();   // kéo dữ liệu mới nhất từ GitHub về (nếu có)
 
 buildUnitPicker();
 loadUnit(0);
