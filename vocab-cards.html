@@ -588,6 +588,14 @@
     font-size: 14px; color: var(--red); margin: 8px 0;
     line-height: 1.5;
   }
+  /* kết quả kiểm tra ngữ pháp câu đặt */
+  .check-err {
+    border: 2px solid #fca5a5; border-radius: 10px; padding: 8px 10px;
+    margin: 8px 0; background: #fff5f5; text-align: left;
+  }
+  .check-ctx { font-size: 15px; }
+  .check-msg { font-size: 13px; color: #b91c1c; margin-top: 3px; }
+  .check-sug { font-size: 13px; color: var(--green); font-weight: bold; margin-top: 2px; }
   /* huy hiệu "đang ôn tập từ chưa thuộc" — bấm để thoát */
   #reviewBadge {
     position: fixed; right: 22px; bottom: 22px; z-index: 45;
@@ -2761,7 +2769,11 @@ function renderQuizHome() {
         </div>
         <textarea id="hwWrong" rows="3" placeholder="Các từ vựng làm sai — mỗi từ một dòng. Để trống nếu đúng hết.">${escH(p.hwWrongTxt ?? hwWrong.join("\n"))}</textarea>
         <textarea id="hwWork" rows="4" placeholder="✏️ Đặt câu với các từ sai ở trên rồi nộp lại — mỗi câu một dòng.">${escH(p.hwWork)}</textarea>
-        <button class="quiz-btn" id="hwSubmit">Nộp bài tập</button>
+        <div class="row" style="gap:8px">
+          <button class="quiz-btn" id="hwCheck" style="background:#dbeafe">🔍 Kiểm tra ngữ pháp</button>
+          <button class="quiz-btn" id="hwSubmit">Nộp bài tập</button>
+        </div>
+        <div id="hwCheckRes"></div>
         ${p.hw != null ? `<div class="hint">Kết quả: ${p.hw}% ${p.done ? "— Đạt ✅" : "— Chưa đạt (cần ≥80%)"}</div>` : ""}
         ${p.done ? "<p>🎉 Unit hoàn thành — unit kế tiếp đã được mở!</p>" : ""}`}
       </div>
@@ -2779,7 +2791,11 @@ function renderQuizHome() {
         </div>
         <textarea id="p3Wrong" rows="3" placeholder="Từ vựng vẫn còn sai — mỗi từ một dòng. Để trống nếu đúng hết.">${escH(p.p3WrongTxt ?? (p.p3Wrong || []).join("\n"))}</textarea>
         <textarea id="p3Work" rows="4" placeholder="✏️ Đặt câu với các từ còn sai — mỗi câu một dòng.">${escH(p.p3Work)}</textarea>
-        <button class="quiz-btn" id="p3Submit">Nộp bài phụ đạo</button>
+        <div class="row" style="gap:8px">
+          <button class="quiz-btn" id="p3Check" style="background:#dbeafe">🔍 Kiểm tra ngữ pháp</button>
+          <button class="quiz-btn" id="p3Submit">Nộp bài phụ đạo</button>
+        </div>
+        <div id="p3CheckRes"></div>
         ${p.p3 != null ? `<div class="hint">Kết quả lần trước: ${p.p3}%</div>` : ""}`}
       </div>
     </div>`;
@@ -2796,8 +2812,10 @@ function renderQuizHome() {
       if (f) window.open(URL.createObjectURL(f), "_blank");
     };
     $("hwSubmit").onclick = submitHomework;
+    if ($("hwCheck")) $("hwCheck").onclick = () => checkSentences("hwWork", "hwCheckRes");
   }
   if (hasP3 && !p.p3done && $("p3Submit")) $("p3Submit").onclick = submitP3;
+  if ($("p3Check")) $("p3Check").onclick = () => checkSentences("p3Work", "p3CheckRes");
   // Tự lưu nháp mọi nội dung học viên đang gõ — đóng giữa chừng không mất
   const draft = (id, field) => {
     const el = $(id);
@@ -3151,6 +3169,40 @@ $("reviewBadge").onclick = () => {
   loadUnit(unitIdx);   // trở về danh sách đầy đủ của unit
 };
 
+/* 🔍 Kiểm tra ngữ pháp các câu học viên tự đặt — dùng LanguageTool public API
+   (cần internet; miễn phí, hỗ trợ CORS). Mỗi dòng trong textarea là 1 câu. */
+async function checkSentences(textId, resId) {
+  const el = $(textId), res = $(resId);
+  const txt = el.value.trim();
+  if (!txt) { alert("Chưa có câu nào để kiểm tra — hãy đặt câu trước nhé!"); return; }
+  res.innerHTML = '<div class="hint">⏳ Đang kiểm tra ngữ pháp...</div>';
+  try {
+    const body = new URLSearchParams({ text: txt, language: "en-US" });
+    const r = await fetch("https://api.languagetool.org/v2/check", { method: "POST", body });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    if (!j.matches || !j.matches.length) {
+      res.innerHTML = '<div class="hint" style="color:var(--green);font-weight:bold">✅ Tuyệt vời — không thấy lỗi ngữ pháp hay chính tả nào!</div>';
+      return;
+    }
+    res.innerHTML = `<div class="hint">⚠️ Tìm thấy ${j.matches.length} chỗ cần xem lại:</div>` +
+      j.matches.slice(0, 15).map(m => {
+        const c = m.context || {}, t = c.text || "";
+        const off = c.offset || 0, len = c.length || 0;
+        const ctxHtml = escH(t.slice(0, off)) +
+          `<b style="color:#e11d48;background:#ffe4e6;border-radius:4px;padding:0 3px">${escH(t.slice(off, off + len))}</b>` +
+          escH(t.slice(off + len));
+        const sug = (m.replacements || []).slice(0, 4).map(x => escH(x.value)).join(" · ");
+        return `<div class="check-err">
+          <div class="check-ctx">…${ctxHtml}…</div>
+          <div class="check-msg">${escH(m.message)}</div>
+          ${sug ? `<div class="check-sug">✏️ Nên là: ${sug}</div>` : ""}
+        </div>`;
+      }).join("");
+  } catch (e) {
+    res.innerHTML = '<div class="hint">⚠️ Không kiểm tra được — cần internet. (' + escH(e.message) + ')</div>';
+  }
+}
 /* Practice 2: học viên nhập số câu đúng / tổng số câu -> hệ thống tính %;
    nhập các từ vựng làm sai -> BẮT BUỘC tự đặt câu với các từ đó rồi nộp.
    Còn từ sai -> mở Practice 3 (bài tập phụ đạo giáo viên ra riêng). */
