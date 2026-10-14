@@ -2760,8 +2760,6 @@ function renderQuizHome() {
       <div class="step-body">
       ${lock3 ? '<div class="hint">🔒 Đạt ≥80% cả 2 quiz ở Practice 1 mới được làm bài tập.</div>' : `
         ${u.pdf ? `<a class="quiz-btn" href="${u.pdf}" target="_blank">📄 Mở file PDF bài tập</a>` : ""}
-        <input type="file" id="hwPdf" accept="application/pdf">
-        <div class="hint">Chọn file PDF bài tập trên máy để mở xem (không lưu lại).</div>
         <div class="row" style="align-items:center">
           <input type="number" id="hwRight" min="0" placeholder="Số câu đúng" value="${p.hwRight ?? ""}">
           <b style="font-size:20px">/</b>
@@ -2808,10 +2806,6 @@ function renderQuizHome() {
   if ($("revBtn")) $("revBtn").onclick = reviewWrongWords;
   if ($("redoWrong")) $("redoWrong").onclick = redoWrongQuiz;
   if (!lock3) {
-    if ($("hwPdf")) $("hwPdf").onchange = e => {
-      const f = e.target.files[0];
-      if (f) window.open(URL.createObjectURL(f), "_blank");
-    };
     $("hwSubmit").onclick = submitHomework;
     if ($("hwCheck")) $("hwCheck").onclick = () => checkSentences("hwWork", "hwCheckRes");
   }
