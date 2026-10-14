@@ -2773,6 +2773,7 @@ function renderQuizHome() {
         </div>
         <div id="hwCheckRes"></div>
         ${p.hw != null ? `<div class="hint">Kết quả (lần nộp 1): ${p.hw}% ${p.done ? "— Đạt ✅" : "— Chưa đạt (cần ≥80%)"}</div>` : ""}
+        ${(p.hwAttempts || []).length ? `<button class="quiz-btn" id="hwViewAtt" style="background:#fef3c7">📄 Xem lại bài đã nộp</button><div id="hwAttView" style="display:none"></div>` : ""}
         ${(p.hwAttempts || []).length > 1 ? `<div class="hint">📋 Lịch sử nộp: ${p.hwAttempts.map(a => `Lần ${a.n}: ${a.pct}%`).join(" · ")} — kết quả chính thức lấy lần 1.</div>` : ""}
         ${p.done ? "<p>🎉 Unit hoàn thành — unit kế tiếp đã được mở!</p>" : ""}`}
       </div>
@@ -2795,6 +2796,7 @@ function renderQuizHome() {
         </div>
         <div id="p3CheckRes"></div>
         ${p.p3 != null ? `<div class="hint">Kết quả (lần nộp 1): ${p.p3}%</div>` : ""}
+        ${(p.p3Attempts || []).length ? `<button class="quiz-btn" id="p3ViewAtt" style="background:#fef3c7">📄 Xem lại bài đã nộp</button><div id="p3AttView" style="display:none"></div>` : ""}
         ${(p.p3Attempts || []).length > 1 ? `<div class="hint">📋 Lịch sử nộp: ${p.p3Attempts.map(a => `Lần ${a.n}: ${a.pct}%`).join(" · ")} — kết quả chính thức lấy lần 1.</div>` : ""}`}
       </div>
     </div>`;
@@ -2811,6 +2813,8 @@ function renderQuizHome() {
   }
   if (hasP3 && $("p3Submit")) $("p3Submit").onclick = submitP3;
   if ($("p3Check")) $("p3Check").onclick = () => checkSentences("p3Work", "p3CheckRes");
+  if ($("hwViewAtt")) $("hwViewAtt").onclick = () => toggleAttemptView("hwAttView", p.hwAttempts);
+  if ($("p3ViewAtt")) $("p3ViewAtt").onclick = () => toggleAttemptView("p3AttView", p.p3Attempts);
   // Tự lưu nháp mọi nội dung học viên đang gõ — đóng giữa chừng không mất
   const draft = (id, field) => {
     const el = $(id);
@@ -3165,7 +3169,16 @@ $("reviewBadge").onclick = () => {
 };
 
 /* 🔍 Kiểm tra ngữ pháp các câu học viên tự đặt — dùng LanguageTool public API
-   (cần internet; miễn phí, hỗ trợ CORS). Mỗi dòng trong textarea là 1 câu. */
+   (cần internet; miễn phí, hỗ trợ CORS). Mỗi dòng trong textarea là 1 câu.
+   Kết quả check gần nhất được lưu vào lastChecks để đính kèm vào lần nộp bài. */
+const lastChecks = {};
+const compactMatch = m => ({
+  msg: m.message || "",
+  ctx: (m.context || {}).text || "",
+  off: (m.context && m.context.offset) || 0,
+  len: (m.context && m.context.length) || 0,
+  sug: (m.replacements || []).slice(0, 3).map(x => x.value)
+});
 async function checkSentences(textId, resId) {
   const el = $(textId), res = $(resId);
   const txt = el.value.trim();
@@ -3176,6 +3189,7 @@ async function checkSentences(textId, resId) {
     const r = await fetch("https://api.languagetool.org/v2/check", { method: "POST", body });
     if (!r.ok) throw new Error("HTTP " + r.status);
     const j = await r.json();
+    lastChecks[textId] = { text: txt, matches: (j.matches || []).map(compactMatch) };
     if (!j.matches || !j.matches.length) {
       res.innerHTML = '<div class="hint" style="color:var(--green);font-weight:bold">✅ Tuyệt vời — không thấy lỗi ngữ pháp hay chính tả nào!</div>';
       return;
@@ -3195,8 +3209,34 @@ async function checkSentences(textId, resId) {
         </div>`;
       }).join("");
   } catch (e) {
+    lastChecks[textId] = null;
     res.innerHTML = '<div class="hint">⚠️ Không kiểm tra được — cần internet. (' + escH(e.message) + ')</div>';
   }
+}
+/* Hiển thị chi tiết 1 lần nộp: số câu đúng, từ sai, câu đã đặt, lỗi ngữ pháp */
+function attemptHTML(a) {
+  let h = `<div class="check-err" style="border-color:#93c5fd;background:#eff6ff">
+    <div class="check-msg" style="color:var(--ink)"><b>📝 Lần nộp ${a.n}</b> — ${a.right}/${a.total} câu đúng = <b>${a.pct}%</b></div>`;
+  if (a.wrong && a.wrong.length)
+    h += `<div class="check-msg">❌ Từ vựng sai: ${escH(a.wrong.join(", "))}</div>`;
+  if (a.work)
+    h += `<div class="check-msg">✏️ Câu đã đặt:<div style="white-space:pre-line;margin-top:2px">${escH(a.work)}</div></div>`;
+  if (a.check && a.check.length)
+    h += `<div class="check-msg">⚠️ Ngữ pháp cần xem lại (${a.check.length}):` +
+      a.check.map(m => {
+        const t = m.ctx || "";
+        const chtml = escH(t.slice(0, m.off)) +
+          `<b style="color:#e11d48;background:#ffe4e6;border-radius:4px;padding:0 2px">${escH(t.slice(m.off, m.off + m.len))}</b>` +
+          escH(t.slice(m.off + m.len));
+        return `<div class="check-ctx" style="margin-top:4px">…${chtml}…${m.sug && m.sug.length ? ` <span class="check-sug">→ ${escH(m.sug.join(" · "))}</span>` : ""}</div>`;
+      }).join("") + `</div>`;
+  return h + `</div>`;
+}
+function toggleAttemptView(resId, attempts) {
+  const d = $(resId);
+  if (!d) return;
+  if (d.style.display === "none") { d.innerHTML = attempts.map(attemptHTML).join(""); d.style.display = "block"; }
+  else d.style.display = "none";
 }
 /* Practice 2: học viên nhập số câu đúng / tổng số câu -> hệ thống tính %;
    nhập các từ vựng làm sai -> BẮT BUỘC tự đặt câu với các từ đó rồi nộp.
@@ -3217,20 +3257,22 @@ function submitHomework() {
   }
   const pct = Math.round(r / t * 100);
   /* Ghi nhận từng lần nộp; kết quả chính thức (p.hw / p.done / p.hwWrong)
-     chỉ tính theo lần nộp ĐẦU — các lần nộp sau chỉ lưu làm lịch sử. */
+     chỉ tính theo lần nộp ĐẦU — các lần nộp sau chỉ lưu làm lịch sử.
+     Kèm kết quả kiểm tra ngữ pháp gần nhất nếu đúng văn bản vừa nộp. */
   p.hwAttempts = p.hwAttempts || [];
   const n = p.hwAttempts.length + 1;
-  p.hwAttempts.push({ n, right: r, total: t, pct, wrong, work, at: Date.now() });
+  const chk = lastChecks.hwWork && lastChecks.hwWork.text === work ? lastChecks.hwWork.matches : null;
+  p.hwAttempts.push({ n, right: r, total: t, pct, wrong, work, check: chk, at: Date.now() });
   if (n === 1) {
     p.hw = pct;
-    p.hwRight = r; p.hwTotal = t;   // lưu số câu đã nhập để xem lại
     p.hwWrong = wrong;
-    if (work) p.hwWork = work; else delete p.hwWork;
     /* done = đạt ≥80% VÀ không còn từ sai — còn từ sai thì phải xong Practice 3 */
     p.done = pct >= 80 && wrong.length === 0;
     if (p.done && !p.doneAt) p.doneAt = Date.now();   // mốc hoàn thành — dùng cho báo cáo tuần
   }
   p.hwAt = Date.now();
+  /* Sau khi nộp: xóa trống ô nhập để làm bài lần sau (dữ liệu đã nằm trong hwAttempts) */
+  delete p.hwRight; delete p.hwTotal; p.hwWrongTxt = ""; p.hwWork = "";
   saveProgress();
   alert(`Lần nộp thứ ${n}: ${r}/${t} câu đúng = ${pct}%`
       + (n > 1 ? ` (kết quả chính thức vẫn tính lần nộp 1: ${p.hw}%)`
@@ -3258,12 +3300,11 @@ function submitP3() {
   /* Ghi nhận từng lần nộp phụ đạo; kết quả chính thức chỉ tính lần nộp ĐẦU. */
   p.p3Attempts = p.p3Attempts || [];
   const n = p.p3Attempts.length + 1;
-  p.p3Attempts.push({ n, right: r, total: t, pct, wrong, work, at: Date.now() });
+  const chk = lastChecks.p3Work && lastChecks.p3Work.text === work ? lastChecks.p3Work.matches : null;
+  p.p3Attempts.push({ n, right: r, total: t, pct, wrong, work, check: chk, at: Date.now() });
   if (n === 1) {
     p.p3 = pct;
-    p.p3Right = r; p.p3Total = t;
     p.p3Wrong = wrong;
-    if (work) p.p3Work = work; else delete p.p3Work;
     p.p3done = wrong.length === 0;
     /* nộp bài phụ đạo lần đầu = unit coi như hoàn thành, mở unit kế;
        kết quả % vẫn lưu & hiển thị để theo dõi mức độ nắm bài */
@@ -3271,6 +3312,8 @@ function submitP3() {
     if (!p.doneAt) p.doneAt = Date.now();
   }
   p.p3At = Date.now();
+  /* Sau khi nộp: xóa trống ô nhập để làm lại (dữ liệu đã nằm trong p3Attempts) */
+  delete p.p3Right; delete p.p3Total; p.p3WrongTxt = ""; p.p3Work = "";
   saveProgress();
   alert(`Lần nộp phụ đạo thứ ${n}: ${r}/${t} = ${pct}%`
       + (n > 1 ? ` (kết quả chính thức vẫn tính lần nộp 1: ${p.p3}%)`
