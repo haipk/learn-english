@@ -3179,39 +3179,45 @@ const compactMatch = m => ({
   len: (m.context && m.context.length) || 0,
   sug: (m.replacements || []).slice(0, 3).map(x => x.value)
 });
+/* Gọi LanguageTool, trả về mảng lỗi đã nén (compactMatch) hoặc null nếu lỗi/mất mạng */
+async function runGrammarCheck(text) {
+  try {
+    const body = new URLSearchParams({ text, language: "en-US" });
+    const r = await fetch("https://api.languagetool.org/v2/check", { method: "POST", body });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    return (j.matches || []).map(compactMatch);
+  } catch (e) { return null; }
+}
 async function checkSentences(textId, resId) {
   const el = $(textId), res = $(resId);
   const txt = el.value.trim();
   if (!txt) { alert("Chưa có câu nào để kiểm tra — hãy đặt câu trước nhé!"); return; }
   res.innerHTML = '<div class="hint">⏳ Đang kiểm tra ngữ pháp...</div>';
-  try {
-    const body = new URLSearchParams({ text: txt, language: "en-US" });
-    const r = await fetch("https://api.languagetool.org/v2/check", { method: "POST", body });
-    if (!r.ok) throw new Error("HTTP " + r.status);
-    const j = await r.json();
-    lastChecks[textId] = { text: txt, matches: (j.matches || []).map(compactMatch) };
-    if (!j.matches || !j.matches.length) {
-      res.innerHTML = '<div class="hint" style="color:var(--green);font-weight:bold">✅ Tuyệt vời — không thấy lỗi ngữ pháp hay chính tả nào!</div>';
-      return;
-    }
-    res.innerHTML = `<div class="hint">⚠️ Tìm thấy ${j.matches.length} chỗ cần xem lại:</div>` +
-      j.matches.slice(0, 15).map(m => {
-        const c = m.context || {}, t = c.text || "";
-        const off = c.offset || 0, len = c.length || 0;
-        const ctxHtml = escH(t.slice(0, off)) +
-          `<b style="color:#e11d48;background:#ffe4e6;border-radius:4px;padding:0 3px">${escH(t.slice(off, off + len))}</b>` +
-          escH(t.slice(off + len));
-        const sug = (m.replacements || []).slice(0, 4).map(x => escH(x.value)).join(" · ");
-        return `<div class="check-err">
-          <div class="check-ctx">…${ctxHtml}…</div>
-          <div class="check-msg">${escH(m.message)}</div>
-          ${sug ? `<div class="check-sug">✏️ Nên là: ${sug}</div>` : ""}
-        </div>`;
-      }).join("");
-  } catch (e) {
+  const matches = await runGrammarCheck(txt);
+  if (matches === null) {
     lastChecks[textId] = null;
-    res.innerHTML = '<div class="hint">⚠️ Không kiểm tra được — cần internet. (' + escH(e.message) + ')</div>';
+    res.innerHTML = '<div class="hint">⚠️ Không kiểm tra được — cần internet.</div>';
+    return;
   }
+  lastChecks[textId] = { text: txt, matches };
+  if (!matches.length) {
+    res.innerHTML = '<div class="hint" style="color:var(--green);font-weight:bold">✅ Tuyệt vời — không thấy lỗi ngữ pháp hay chính tả nào!</div>';
+    return;
+  }
+  res.innerHTML = `<div class="hint">⚠️ Tìm thấy ${matches.length} chỗ cần xem lại:</div>` +
+    matches.slice(0, 15).map(m => {
+      const t = m.ctx || "";
+      const ctxHtml = escH(t.slice(0, m.off)) +
+        `<b style="color:#e11d48;background:#ffe4e6;border-radius:4px;padding:0 3px">${escH(t.slice(m.off, m.off + m.len))}</b>` +
+        escH(t.slice(m.off + m.len));
+      const sug = (m.sug || []).map(escH).join(" · ");
+      return `<div class="check-err">
+        <div class="check-ctx">…${ctxHtml}…</div>
+        <div class="check-msg">${escH(m.msg)}</div>
+        ${sug ? `<div class="check-sug">✏️ Nên là: ${sug}</div>` : ""}
+      </div>`;
+    }).join("");
 }
 /* Hiển thị chi tiết 1 lần nộp: số câu đúng, từ sai, câu đã đặt, lỗi ngữ pháp */
 function attemptHTML(a) {
@@ -3241,7 +3247,7 @@ function toggleAttemptView(resId, attempts) {
 /* Practice 2: học viên nhập số câu đúng / tổng số câu -> hệ thống tính %;
    nhập các từ vựng làm sai -> BẮT BUỘC tự đặt câu với các từ đó rồi nộp.
    Còn từ sai -> mở Practice 3 (bài tập phụ đạo giáo viên ra riêng). */
-function submitHomework() {
+async function submitHomework() {
   const u = ALL_UNITS[unitIdx], p = prog(u);
   if (!isAdmin() && !((p.q1 ?? 0) >= 80 && (p.q2 ?? 0) >= 80)) return;   // chặn tick khi quiz chưa đạt
   const r = +$("hwRight").value, t = +$("hwTotal").value;
@@ -3258,10 +3264,20 @@ function submitHomework() {
   const pct = Math.round(r / t * 100);
   /* Ghi nhận từng lần nộp; kết quả chính thức (p.hw / p.done / p.hwWrong)
      chỉ tính theo lần nộp ĐẦU — các lần nộp sau chỉ lưu làm lịch sử.
-     Kèm kết quả kiểm tra ngữ pháp gần nhất nếu đúng văn bản vừa nộp. */
+     Luôn tự động chấm ngữ pháp bài đặt câu khi nộp (dù cache nếu trùng). */
+  let chk = null;
+  if (work) {
+    const rr = $("hwCheckRes");
+    if (lastChecks.hwWork && lastChecks.hwWork.text === work) {
+      chk = lastChecks.hwWork.matches;
+    } else {
+      if (rr) rr.innerHTML = '<div class="hint">⏳ Đang kiểm tra ngữ pháp bài nộp...</div>';
+      chk = await runGrammarCheck(work);
+      if (chk !== null) lastChecks.hwWork = { text: work, matches: chk };
+    }
+  }
   p.hwAttempts = p.hwAttempts || [];
   const n = p.hwAttempts.length + 1;
-  const chk = lastChecks.hwWork && lastChecks.hwWork.text === work ? lastChecks.hwWork.matches : null;
   p.hwAttempts.push({ n, right: r, total: t, pct, wrong, work, check: chk, at: Date.now() });
   if (n === 1) {
     p.hw = pct;
@@ -3278,12 +3294,16 @@ function submitHomework() {
       + (n > 1 ? ` (kết quả chính thức vẫn tính lần nộp 1: ${p.hw}%)`
         : p.done ? " — Hoàn thành! Unit kế tiếp đã mở."
         : wrong.length ? ` — Còn ${wrong.length} từ sai: làm xong Practice 3 mới mở unit kế tiếp.`
-        : " — Chưa đạt (cần ≥80%)."));
+        : " — Chưa đạt (cần ≥80%).")
+      + (work ? (chk === null
+          ? "\n⚠️ Không kết nối được dịch vụ chấm ngữ pháp — cần internet."
+          : chk.length ? `\n⚠️ Ngữ pháp: còn ${chk.length} chỗ cần xem lại — bấm 📄 Xem lại bài đã nộp để xem chi tiết.`
+          : "\n✅ Ngữ pháp: không thấy lỗi!") : ""));
   renderQuizHome();
 }
 /* Practice 3: bài tập phụ đạo với các từ còn sai (giáo viên ra ngoài app).
    Còn từ sai -> phải đặt câu; hết từ sai -> p3done. */
-function submitP3() {
+async function submitP3() {
   const u = ALL_UNITS[unitIdx], p = prog(u);
   const r = +$("p3Right").value, t = +$("p3Total").value;
   if (!t || isNaN(r) || r < 0 || r > t) {
@@ -3297,10 +3317,21 @@ function submitP3() {
     return;
   }
   const pct = Math.round(r / t * 100);
-  /* Ghi nhận từng lần nộp phụ đạo; kết quả chính thức chỉ tính lần nộp ĐẦU. */
+  /* Ghi nhận từng lần nộp phụ đạo; kết quả chính thức chỉ tính lần nộp ĐẦU.
+     Luôn tự động chấm ngữ pháp bài đặt câu khi nộp (dùng cache nếu trùng). */
+  let chk = null;
+  if (work) {
+    const rr = $("p3CheckRes");
+    if (lastChecks.p3Work && lastChecks.p3Work.text === work) {
+      chk = lastChecks.p3Work.matches;
+    } else {
+      if (rr) rr.innerHTML = '<div class="hint">⏳ Đang kiểm tra ngữ pháp bài nộp...</div>';
+      chk = await runGrammarCheck(work);
+      if (chk !== null) lastChecks.p3Work = { text: work, matches: chk };
+    }
+  }
   p.p3Attempts = p.p3Attempts || [];
   const n = p.p3Attempts.length + 1;
-  const chk = lastChecks.p3Work && lastChecks.p3Work.text === work ? lastChecks.p3Work.matches : null;
   p.p3Attempts.push({ n, right: r, total: t, pct, wrong, work, check: chk, at: Date.now() });
   if (n === 1) {
     p.p3 = pct;
@@ -3318,7 +3349,11 @@ function submitP3() {
   alert(`Lần nộp phụ đạo thứ ${n}: ${r}/${t} = ${pct}%`
       + (n > 1 ? ` (kết quả chính thức vẫn tính lần nộp 1: ${p.p3}%)`
         : p.p3done ? " — Đúng hết, tuyệt vời! 🎉 Unit kế tiếp đã mở."
-        : ` — Unit đã hoàn thành, unit kế tiếp mở; còn ${wrong.length} từ sai nên ôn thêm nhé.`));
+        : ` — Unit đã hoàn thành, unit kế tiếp mở; còn ${wrong.length} từ sai nên ôn thêm nhé.`)
+      + (work ? (chk === null
+          ? "\n⚠️ Không kết nối được dịch vụ chấm ngữ pháp — cần internet."
+          : chk.length ? `\n⚠️ Ngữ pháp: còn ${chk.length} chỗ cần xem lại — bấm 📄 Xem lại bài đã nộp để xem chi tiết.`
+          : "\n✅ Ngữ pháp: không thấy lỗi!") : ""));
   renderQuizHome();
 }
 
