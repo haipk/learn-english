@@ -882,12 +882,12 @@
       <button class="nav-btn" id="dbImportBtn">📥 Nhập .sqlite</button>
       <input type="file" id="dbImport" accept=".sqlite,.sqlite3,.db" hidden>
       <span class="hint" id="ghStatus"></span>
-      <input id="ghToken" type="password" placeholder="GitHub token (PAT)" autocomplete="off">
+      <input id="ghToken" type="password" placeholder="API token (admin)" autocomplete="off">
       <button class="nav-btn" id="ghSave">🔗 Lưu token</button>
-      <button class="nav-btn" id="ghDbExport">☁⬆ .sqlite → GitHub</button>
-      <button class="nav-btn" id="ghDbImport">☁⬇ .sqlite ← GitHub</button>
-      <button class="nav-btn" id="ghIdbExport">☁⬆ Ảnh/video → GitHub</button>
-      <button class="nav-btn" id="ghIdbImport">☁⬇ Ảnh/video ← GitHub</button>
+      <button class="nav-btn" id="ghDbExport">☁⬆ .sqlite → server</button>
+      <button class="nav-btn" id="ghDbImport">☁⬇ .sqlite ← server</button>
+      <button class="nav-btn" id="ghIdbExport">☁⬆ Ảnh/video → server</button>
+      <button class="nav-btn" id="ghIdbImport">☁⬇ Ảnh/video ← server</button>
     </div>
   </div>
 </div>
@@ -1857,7 +1857,7 @@ function openHome() {
   $("homeUser").textContent = store.current ? nameIcon(store.current) : "";
   $("homePhoto").src = (store.users[store.current] || {}).photo || "dinob.png";
   $("dbTools").hidden = !isAdmin();   // cụm SQLite chỉ dành cho admin
-  if (isAdmin() && ghToken()) $("ghStatus").textContent = "☁ GitHub ✓";
+  if (isAdmin() && apiToken()) $("ghStatus").textContent = "☁ Server ✓";
   $("homeScreen").classList.add("open");
 }
 $("homeBtn").onclick = openHome;
@@ -3424,12 +3424,12 @@ function persistDB() {
 function dbPut(k, v) { DB.run("INSERT OR REPLACE INTO kv(k,v) VALUES(?,?)", [k, v]); }
 localStorage.setItem = (k, v) => {
   _lsSet(k, v);
-  if (DB && k !== "dinob_ghtoken") { dbPut(k, v); persistDB(); }   // token không đưa vào DB/backup
+  if (DB && k !== "dinob_apitoken") { dbPut(k, v); persistDB(); }   // token không đưa vào DB/backup
   ghPushSoon();
 };
 localStorage.removeItem = k => {
   _lsDel(k);
-  if (DB && k !== "dinob_ghtoken") { DB.run("DELETE FROM kv WHERE k=?", [k]); persistDB(); }
+  if (DB && k !== "dinob_apitoken") { DB.run("DELETE FROM kv WHERE k=?", [k]); persistDB(); }
   ghPushSoon();
 };
 async function initDB() {
@@ -3439,7 +3439,7 @@ async function initDB() {
     if (saved) {
       DB = new SQL.Database(Uint8Array.from(atob(saved), c => c.charCodeAt(0)));
       DB.run("CREATE TABLE IF NOT EXISTS kv(k TEXT PRIMARY KEY, v TEXT)");
-      DB.run("DELETE FROM kv WHERE k='dinob_ghtoken'");   // dọn token lỡ lọt vào DB cũ
+      DB.run("DELETE FROM kv WHERE k='dinob_apitoken'");   // dọn token lỡ lọt vào DB cũ
       persistDB();
       // đồng bộ ngược DB -> localStorage (ví dụ sau khi nhập file .sqlite)
       let diff = false;
@@ -3458,7 +3458,7 @@ async function initDB() {
       DB.run("CREATE TABLE IF NOT EXISTS kv(k TEXT PRIMARY KEY, v TEXT)");
       for (let i = 0; i < localStorage.length; i++) {   // migrate dữ liệu cũ vào SQLite
         const k = localStorage.key(i);
-        if (k !== "dinob_sqlite" && k !== "dinob_ghtoken") dbPut(k, localStorage.getItem(k));
+        if (k !== "dinob_sqlite" && k !== "dinob_apitoken") dbPut(k, localStorage.getItem(k));
       }
       persistDB();
     }
@@ -3487,18 +3487,23 @@ $("dbImport").onchange = e => {
 };
 initDB();   // không chặn khởi động — app chạy ngay trên localStorage
 
-/* ---------- đồng bộ GitHub ----------
-   Mọi key localStorage (trừ dinob_sqlite + token) được gộp thành file
-   data/app-data.json trong repo public — máy nào cũng đọc được, không cần
-   token. Chỉ máy admin có token (fine-grained PAT, quyền Contents: Read and
-   write trên đúng repo này — nhập 1 lần ở trang chủ, lưu vào
-   localStorage["dinob_ghtoken"]) mới ghi được. Pull chạy khi mở app (dữ liệu
-   khác thì hydrate rồi reload 1 lần như SQLite); push debounce 3s sau mỗi
-   lần localStorage thay đổi. Nút ☁⬆/☁⬇ ghi/đọc thêm file nhị phân
-   data/dinob-data.sqlite — bản backup mở được bằng DB Browser / sqlite3. */
-const GH_API = "https://api.github.com/repos/haipk/learn-english/contents/data/app-data.json";
-const GH_SKIP = new Set(["dinob_sqlite", "dinob_ghtoken"]);
-const ghToken = () => localStorage.getItem("dinob_ghtoken") || "";
+/* ---------- đồng bộ qua API server (Worker + D1 + R2) ----------
+   Mọi key localStorage (trừ dinob_sqlite + token) được đồng bộ qua
+   Worker dinob-api: text -> bảng kv trong D1, ảnh/video -> bucket R2,
+   backup -> object R2. Đọc public (mọi máy kéo về không cần token);
+   ghi cần Bearer token — admin nhập 1 lần ở trang chủ, lưu vào
+   localStorage["dinob_apitoken"]. Pull chạy khi mở app (dữ liệu khác thì
+   hydrate rồi reload tối đa 3 lần/phiên); push debounce 3s sau mỗi
+   lần localStorage thay đổi, merge union với remote trước khi ghi. */
+const API = "https://dinob.io.vn/api";   // CORS * -> mọi origin (file://, github.io, pages.dev) đều đồng bộ cùng server
+const API_SKIP = new Set(["dinob_sqlite", "dinob_apitoken"]);
+const apiToken = () => localStorage.getItem("dinob_apitoken") || "";
+const apiGet = path => fetch(API + path);
+const apiPut = (path, body, ct) => fetch(API + path, {
+  method: "PUT",
+  headers: Object.assign({ Authorization: "Bearer " + apiToken() }, ct ? { "Content-Type": ct } : {}),
+  body,
+});
 /* Merge union 2 phía (dùng cho cả pull lẫn push): object gộp theo key đệ
    quy, mảng gộp khử trùng theo giá trị, scalar local thắng; phía rỗng
    (mảng/object trống) không bao giờ đè phía có dữ liệu — máy đẩy bản
@@ -3527,15 +3532,15 @@ function ghMerge(k, remote, local) {
   try { return JSON.stringify(ghDeepMerge(JSON.parse(remote), JSON.parse(local))); }
   catch (e) { return local; }
 }
-async function ghPull() {
+async function apiPull() {
   try {
-    const r = await fetch(GH_API + "?ref=main", { headers: { Accept: "application/vnd.github.raw" } });
+    const r = await apiGet("/data");
     if (!r.ok) return;
     const data = await r.json();
     if (!data || typeof data !== "object") return;
     let diff = false, needPush = false;
     for (const k in data) {
-      if (GH_SKIP.has(k)) continue;
+      if (API_SKIP.has(k)) continue;
       const local = localStorage.getItem(k);
       const v = ghMerge(k, data[k], local);
       if (v !== local) { _lsSet(k, v); diff = true; }
@@ -3550,32 +3555,16 @@ async function ghPull() {
       }
     }
     if (needPush) ghPushSoon();   // local đầy đủ hơn remote -> đẩy bản đầy đủ lên lại
-  } catch (e) { /* offline / chưa có file -> dùng localStorage */ }
+  } catch (e) { /* offline / server chưa sẵn sàng -> dùng localStorage */ }
 }
 let ghTimer = null, ghBusy = false, ghLastPush = 0;
-const GH_MIN_GAP = 60000;   // tối đa 1 push/phút — chống bão commit khi ghi liên tục
+const GH_MIN_GAP = 10000;   // tối đa 1 push/10s — API ghi rẻ, không cần gap lớn như GitHub commits
 function ghPushSoon() {
   clearTimeout(ghTimer);
   ghTimer = setTimeout(ghPush, Math.max(3000, GH_MIN_GAP - (Date.now() - ghLastPush)));
 }
-const GH_SQLITE_API = "https://api.github.com/repos/haipk/learn-english/contents/data/dinob-data.sqlite";
-const GH_IDB_DIR = "https://api.github.com/repos/haipk/learn-english/contents/data/idb";
-async function ghPutFile(api, contentB64, tok, sha) {
-  if (sha === undefined) {
-    const cur = await fetch(api + "?ref=main", { headers: { Authorization: "Bearer " + tok } });
-    sha = cur.ok ? (await cur.json()).sha : undefined;
-  }
-  const body = { message: "Sync app data", content: contentB64, branch: "main" };
-  if (sha) body.sha = sha;
-  const r = await fetch(api, {
-    method: "PUT",
-    headers: { Authorization: "Bearer " + tok, "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  return r.ok;
-}
-async function ghPush(again) {
-  const tok = ghToken();
+async function ghPush() {
+  const tok = apiToken();
   if (!tok || ghBusy) return false;
   ghBusy = true;
   let ok = false;
@@ -3583,113 +3572,103 @@ async function ghPush(again) {
     const payload = {};
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      if (!GH_SKIP.has(k)) payload[k] = localStorage.getItem(k);
+      if (!API_SKIP.has(k)) payload[k] = localStorage.getItem(k);
     }
-    const cur = await fetch(GH_API + "?ref=main", { headers: { Authorization: "Bearer " + tok } });
-    const curJ = cur.ok ? await cur.json() : {};
-    let remote = {};
-    if (curJ.content) try { remote = JSON.parse(decodeURIComponent(escape(atob(curJ.content.replace(/\s/g, ""))))); } catch (e) {}
+    const cur = await apiGet("/data");           // merge union với remote: máy rỗng không xóa được dữ liệu chung
+    const remote = cur.ok ? await cur.json() : {};
     const merged = {};
     for (const k of new Set([...Object.keys(remote), ...Object.keys(payload)]))
-      if (!GH_SKIP.has(k)) merged[k] = ghMerge(k, remote[k], payload[k]);
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(merged))));
-    if (curJ.content && curJ.content.replace(/\n/g, "") === content) {   // merge xong trùng remote -> khỏi commit
+      if (!API_SKIP.has(k)) merged[k] = ghMerge(k, remote[k], payload[k]);
+    if (JSON.stringify(merged) === JSON.stringify(remote)) {   // merge xong trùng remote -> khỏi ghi
       ghBusy = false;
       return true;
     }
-    ok = await ghPutFile(GH_API, content, tok, cur.ok ? curJ.sha : null);
+    const r = await apiPut("/data", JSON.stringify(merged), "application/json");
+    ok = r.ok;
     if (ok) ghLastPush = Date.now();
     ghBusy = false;
-    if (!ok && again !== false) ok = await ghPush(false);   // sha cũ do máy khác vừa ghi -> thử lại 1 lần
   } catch (e) { ghBusy = false; }
   return ok;
 }
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") ghPush();   // đẩy nốt trước khi ẩn/đóng tab
 });
-$("ghDbExport").onclick = async () => {   // ghi file .sqlite thật lên repo — mở được bằng DB Browser
+$("ghDbExport").onclick = async () => {   // ghi file .sqlite thật lên R2 — mở được bằng DB Browser
   if (!DB) { alert("SQLite chưa sẵn sàng (cần internet tải thư viện lần đầu)."); return; }
-  const tok = ghToken();
-  if (!tok) { alert("Nhập GitHub token rồi bấm 🔗 Lưu token trước."); return; }
+  const tok = apiToken();
+  if (!tok) { alert("Nhập API token rồi bấm 🔗 Lưu token trước."); return; }
   persistDB();
   $("ghStatus").textContent = "☁ Đang ghi .sqlite…";
-  $("ghStatus").textContent = (await ghPutFile(GH_SQLITE_API, u8b64(DB.export()), tok))
-    ? "☁ .sqlite → GitHub ✓" : "⚠ Ghi thất bại — kiểm tra quyền token";
+  const r = await apiPut("/backup", DB.export(), "application/octet-stream");
+  $("ghStatus").textContent = r.ok ? "☁ .sqlite → server ✓" : "⚠ Ghi thất bại — kiểm tra token";
 };
-$("ghDbImport").onclick = async () => {   // repo public -> đọc không cần token
-  const r = await fetch(GH_SQLITE_API + "?ref=main", { headers: { Accept: "application/vnd.github.raw" } });
-  if (!r.ok) { alert("Chưa có file .sqlite trên GitHub — bấm ☁⬆ ở máy có dữ liệu trước."); return; }
+$("ghDbImport").onclick = async () => {   // đọc public -> không cần token
+  const r = await apiGet("/backup");
+  if (!r.ok) { alert("Chưa có file .sqlite trên server — bấm ☁⬆ ở máy có dữ liệu trước."); return; }
   _lsSet("dinob_sqlite", u8b64(new Uint8Array(await r.arrayBuffer())));
   sessionStorage.removeItem("dinob_reloaded");
   location.reload();
 };
-/* ---------- đồng bộ ảnh/video IndexedDB <-> GitHub ----------
+/* ---------- đồng bộ ảnh/video IndexedDB <-> R2 ----------
    Mỗi record trong IndexedDB "dinob_img" (ảnh upload idb:*, video vid:*)
-   -> 1 file data/idb/<base64url(key)>.bin trong repo. So khớp nội dung
-   bằng SHA-1 dạng git blob nên chỉ đẩy/tải file khác biệt. Nút ☁⬆ cần
-   token; ☁⬇ tải qua download_url (repo public -> không cần token). */
+   -> 1 object media/<base64url(key)>.bin trong R2. So khớp bằng kích
+   thước + tên key nên chỉ đẩy/tải file khác biệt. Nút ☁⬆ cần token;
+   ☁⬇ đọc public -> không cần token. */
 const b64url = s => btoa(unescape(encodeURIComponent(s))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 const unb64url = s => decodeURIComponent(escape(atob(s.replace(/-/g, "+").replace(/_/g, "/"))));
-async function gitSha(blob) {   // = field "sha" GitHub trả về: sha1("blob <n>\0" + data)
-  const b = new Uint8Array(await blob.arrayBuffer());
-  const head = new TextEncoder().encode("blob " + b.length + "\0");
-  const all = new Uint8Array(head.length + b.length);
-  all.set(head); all.set(b, head.length);
-  const h = await crypto.subtle.digest("SHA-1", all.buffer);
-  return [...new Uint8Array(h)].map(x => x.toString(16).padStart(2, "0")).join("");
-}
-const GH_MEDIA_MAX = 45 * 1024 * 1024;   // file >45MB bỏ qua (giới hạn Contents API)
+const MEDIA_MAX = 90 * 1024 * 1024;   // file >90MB bỏ qua (giới hạn request body Worker ~100MB)
 $("ghIdbExport").onclick = async () => {
-  const tok = ghToken();
-  if (!tok) { alert("Nhập GitHub token rồi bấm 🔗 Lưu token trước."); return; }
+  const tok = apiToken();
+  if (!tok) { alert("Nhập API token rồi bấm 🔗 Lưu token trước."); return; }
   if (!IDB) { alert("IndexedDB chưa sẵn sàng."); return; }
   const st = $("ghStatus"), keys = await idbKeys();
   if (!keys.length) { st.textContent = "☁ Không có ảnh/video nào."; return; }
   const remote = {};
-  const dir = await fetch(GH_IDB_DIR + "?ref=main", { headers: { Authorization: "Bearer " + tok } });
-  if (dir.ok) for (const f of await dir.json()) remote[f.name] = f;
+  const dir = await apiGet("/media");
+  if (dir.ok) for (const f of (await dir.json()).files || []) remote[f.name] = f;
   let done = 0, up = 0, skip = 0;
   for (const k of keys) {
     st.textContent = `☁ Media ${++done}/${keys.length}…`;
     const v = await idbGet(k);
     if (v == null) continue;
     const blob = v instanceof Blob ? v : new Blob([v]);
-    if (blob.size > GH_MEDIA_MAX) { skip++; continue; }
+    if (blob.size > MEDIA_MAX) { skip++; continue; }
     const name = b64url(k) + ".bin";
-    if (remote[name] && remote[name].sha === (await gitSha(blob))) continue;
-    if (await ghPutFile(GH_IDB_DIR + "/" + name, u8b64(new Uint8Array(await blob.arrayBuffer())), tok, remote[name]?.sha || null)) up++;
+    if (remote[name] && remote[name].size === blob.size) continue;
+    const r = await apiPut("/media/" + name, blob, blob.type || "application/octet-stream");
+    if (r.ok) up++;
   }
-  st.textContent = `☁ Media → GitHub ✓ (${up} file mới${skip ? `, bỏ qua ${skip} file >45MB` : ""})`;
+  st.textContent = `☁ Media → server ✓ (${up} file mới${skip ? `, bỏ qua ${skip} file >90MB` : ""})`;
 };
 $("ghIdbImport").onclick = async () => {
   if (!IDB) { alert("IndexedDB chưa sẵn sàng."); return; }
   const st = $("ghStatus");
-  const dir = await fetch(GH_IDB_DIR + "?ref=main");
-  if (!dir.ok) { alert("Chưa có ảnh/video trên GitHub — bấm ☁⬆ ở máy có dữ liệu trước."); return; }
-  const files = (await dir.json()).filter(f => f.name.endsWith(".bin"));
+  const dir = await apiGet("/media");
+  if (!dir.ok) { alert("Chưa có ảnh/video trên server — bấm ☁⬆ ở máy có dữ liệu trước."); return; }
+  const files = ((await dir.json()).files || []).filter(f => f.name.endsWith(".bin"));
   let n = 0, done = 0;
   for (const f of files) {
     st.textContent = `☁ Tải media ${++done}/${files.length}…`;
     const k = unb64url(f.name.slice(0, -4));
     const cur = await idbGet(k);
-    if (cur instanceof Blob && (await gitSha(cur)) === f.sha) continue;
-    const r = await fetch(f.download_url);
+    if (cur instanceof Blob && cur.size === f.size) continue;
+    const r = await apiGet("/media/" + f.name);
     if (r.ok) { idbPut(k, await r.blob()); n++; }
   }
   if (n) { sessionStorage.removeItem("dinob_reloaded"); location.reload(); }
-  else st.textContent = "☁ Media ← GitHub ✓ (không có gì mới)";
+  else st.textContent = "☁ Media ← server ✓ (không có gì mới)";
 };
 $("ghSave").onclick = async () => {
   const v = $("ghToken").value.trim();
-  if (v) localStorage.setItem("dinob_ghtoken", v); else localStorage.removeItem("dinob_ghtoken");
+  if (v) localStorage.setItem("dinob_apitoken", v); else localStorage.removeItem("dinob_apitoken");
   $("ghToken").value = "";
   if (!v) { $("ghStatus").textContent = "✖ Đã xóa token"; return; }
   $("ghStatus").textContent = "☁ Đang kiểm tra…";
   $("ghStatus").textContent = (await ghPush())
-    ? "☁ GitHub ✓"
-    : "⚠ Token không ghi được — cần quyền Contents: Read and write trên repo haipk/learn-english";
+    ? "☁ Server ✓"
+    : "⚠ Token không ghi được — sai token hoặc server chưa sẵn sàng";
 };
-ghPull();   // kéo dữ liệu mới nhất từ GitHub về (nếu có)
+apiPull();   // kéo dữ liệu mới nhất từ server về (nếu có)
 
 buildUnitPicker();
 loadUnit(0);

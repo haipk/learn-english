@@ -280,8 +280,9 @@ with the word data. Resolution order in `renderImage(wrap, ex, key)`:
 Uploaded images live in the browser's IndexedDB (offline-friendly, large
 quota) — they are NOT included in the SQLite export. The admin-only
 ☁⬆/☁⬇ Ảnh/video buttons on the home screen back them up to / restore
-them from `data/idb/<base64url(key)>.bin` on GitHub (same for `vid:*`
-recordings, files >45MB are skipped). Images use
+them from `media/<base64url(key)>.bin` in the R2 bucket via the Worker API
+(same for `vid:*` recordings, files >90MB are skipped — Worker request
+body limit). Images use
 `mix-blend-mode: multiply` so white backgrounds blend into the card's
 grid-paper (looks drawn on, not pasted).
 

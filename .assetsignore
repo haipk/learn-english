@@ -1,0 +1,7 @@
+worker/
+data/
+public/
+*.md
+*.jsonc
+.gitignore
+.gitattributes

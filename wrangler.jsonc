@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "dinob-api",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-10-18",
+  "assets": { "directory": "./", "binding": "ASSETS", "run_worker_first": ["/api/*"] },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "dinob-db", "database_id": "823c6b31-2057-4920-8d7b-7bb7d97083cd" }
+  ],
+  // R2 chưa được bật trên account — bật trong Dashboard rồi bỏ comment khối này:
+  // "r2_buckets": [
+  //   { "binding": "MEDIA", "bucket_name": "dinob-media" }
+  // ],
+  "observability": { "enabled": true }
+}
