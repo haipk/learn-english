@@ -131,6 +131,14 @@ export default {
       }
     }
     if (p.startsWith("/api/")) return json({ ok: false, error: "not found" }, { status: 404 });
-    return env.ASSETS.fetch(req);
+    const res = await env.ASSETS.fetch(req);
+    // Asset store lưu sai content-type octet-stream cho một số file .html
+    // (trình duyệt sẽ tải file về thay vì render) -> ép lại thành text/html.
+    if (res.ok && res.headers.get("Content-Type") === "application/octet-stream") {
+      const h = new Headers(res.headers);
+      h.set("Content-Type", "text/html; charset=utf-8");
+      return new Response(res.body, { status: res.status, headers: h });
+    }
+    return res;
   },
 };
