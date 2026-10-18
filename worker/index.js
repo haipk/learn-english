@@ -131,7 +131,10 @@ export default {
       }
     }
     if (p.startsWith("/api/")) return json({ ok: false, error: "not found" }, { status: 404 });
-    const res = await env.ASSETS.fetch(req);
+    // "/" và /index(.html) -> app luôn, không qua trang redirect
+    const assetUrl = (p === "/" || p === "/index" || p === "/index.html")
+      ? new URL("/vocab-cards", req.url) : req.url;
+    const res = await env.ASSETS.fetch(assetUrl);
     // Asset store lưu sai content-type octet-stream cho một số file .html
     // (trình duyệt sẽ tải file về thay vì render) -> ép lại thành text/html.
     if (res.ok && res.headers.get("Content-Type") === "application/octet-stream") {
