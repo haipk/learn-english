@@ -824,6 +824,7 @@
   <span class="counter" id="counter"></span>
   <button id="nextBtn">Sau ▶</button>
   <button id="shuffleBtn">🔀 Ngẫu nhiên</button>
+  <button id="autoBtn" title="Tự động chạy flashcard kèm audio">▶ Tự động</button>
   <select id="wordPicker"></select>
   <button id="recBtn">🎥 Quay video</button>
   <button id="quizBtn">📝 Luyện tập</button>
@@ -1674,6 +1675,7 @@ const $ = id => document.getElementById(id);
 
 /* nạp một unit: cập nhật banner, danh sách từ, word picker rồi render */
 function loadUnit(i) {
+  autoStop();                            // đổi unit thì dừng chế độ tự động
   unitIdx = i;
   const u = ALL_UNITS[i];
   $("reviewBadge").hidden = true;   // thoát chế độ ôn tập nếu đang bật
@@ -1802,13 +1804,81 @@ function speakText(t) {
   speechSynthesis.cancel(); speechSynthesis.speak(u);
 }
 function speak() {
+  if (auto) return;                     // đang auto thì bỏ qua, khỏi cắt chuỗi TTS
   if (ALL_WORDS.length) speakText(ALL_WORDS[idx].word);
 }
 
+/* ---------- ▶ Tự động chạy flashcard ----------
+   Mỗi từ có MP3 riêng tại AUDIO_TTS/AUDIO/Book{b}/Unit{nn}/words/{NN}_{giọng}.mp3
+   (sinh bởi AUDIO_TTS/make_audio.py; cuối file đã gồm khoảng nghỉ sau ví dụ).
+   Phát hết file -> lật sang thẻ kế. Unit chưa có MP3 thì đọc
+   word -> meaning -> example bằng speechSynthesis, xong mới lật. */
+let auto = null;                 // {vi: chỉ số giọng đang thử, noMp3}
+const autoAudio = new Audio();
+const AUTO_VOICES = ["Guy", "Jenny"];
+const stripTags = t => (t || "").replace(/<[^>]*>/g, " ");
+function autoPath(u, i, voice) {
+  const m = (u.book || "").match(/(\d+)\s*$/);   // "... Context - Book 2" -> 2
+  if (!m || isNaN(+u.unit)) return null;
+  const nn = String(u.unit).padStart(2, "0"), wi = String(i + 1).padStart(2, "0");
+  return `AUDIO_TTS/AUDIO/Book${m[1]}/Unit${nn}/words/${wi}_${voice}.mp3`;
+}
+function autoStart() {
+  if (!ALL_WORDS.length || auto) return;
+  auto = { vi: 0, noMp3: false };
+  $("autoBtn").textContent = "⏹ Dừng";
+  autoPlay(idx);
+}
+function autoStop() {
+  if (!auto) return;
+  auto = null;
+  autoAudio.pause(); autoAudio.removeAttribute("src");
+  speechSynthesis.cancel();
+  $("autoBtn").textContent = "▶ Tự động";
+}
+function autoNext() {
+  if (!auto) return;
+  if (idx + 1 >= ALL_WORDS.length) { autoStop(); return; }
+  idx++; render(); autoPlay(idx);
+}
+function autoPlay(i) {
+  if (!auto) return;
+  const src = auto.noMp3 ? null : autoPath(ALL_UNITS[unitIdx], i, AUTO_VOICES[auto.vi]);
+  if (!src) { autoTts(i); return; }
+  autoAudio.onerror = () => {
+    if (!auto) return;
+    if (auto.vi + 1 < AUTO_VOICES.length) { auto.vi++; autoPlay(i); }
+    else { auto.noMp3 = true; autoTts(i); }   // hết giọng để thử -> đọc bằng trình duyệt
+  };
+  autoAudio.onended = () => autoNext();
+  autoAudio.src = src;
+  autoAudio.play().catch(() => {});
+}
+function autoTts(i) {
+  if (!auto) return;
+  const w = ALL_WORDS[i];
+  const ex = (w.examples || [])[0];
+  const parts = [
+    w.word + ". " + w.word,
+    w.meaning && "Meaning: " + stripTags(w.meaning),
+    ex && ex.text && "Example: " + stripBrackets(ex.text),
+  ].filter(Boolean);
+  (function seq() {
+    if (!auto) return;
+    const t = parts.shift();
+    if (!t) { autoNext(); return; }
+    const u = new SpeechSynthesisUtterance(t);
+    u.lang = "en-US"; u.rate = 0.54;
+    u.onend = seq; u.onerror = seq;
+    speechSynthesis.speak(u);
+  })();
+}
+
 /* ---------- điều khiển ---------- */
-$("prevBtn").onclick = () => { if (!ALL_WORDS.length) return; idx = (idx - 1 + ALL_WORDS.length) % ALL_WORDS.length; render(); };
-$("nextBtn").onclick = () => { if (!ALL_WORDS.length) return; idx = (idx + 1) % ALL_WORDS.length; render(); };
-$("shuffleBtn").onclick = () => { if (!ALL_WORDS.length) return; idx = Math.floor(Math.random() * ALL_WORDS.length); render(); };
+$("prevBtn").onclick = () => { if (!ALL_WORDS.length) return; idx = (idx - 1 + ALL_WORDS.length) % ALL_WORDS.length; render(); if (auto) autoPlay(idx); };
+$("nextBtn").onclick = () => { if (!ALL_WORDS.length) return; idx = (idx + 1) % ALL_WORDS.length; render(); if (auto) autoPlay(idx); };
+$("shuffleBtn").onclick = () => { if (!ALL_WORDS.length) return; idx = Math.floor(Math.random() * ALL_WORDS.length); render(); if (auto) autoPlay(idx); };
+$("autoBtn").onclick = () => auto ? autoStop() : autoStart();
 $("speakBtn").onclick = speak;
 window.addEventListener("resize", fitCard);
 document.addEventListener("keydown", e => {
@@ -1828,7 +1898,7 @@ function buildPicker() {
     picker.appendChild(o);
   });
 }
-picker.onchange = () => { idx = +picker.value; render(); };
+picker.onchange = () => { idx = +picker.value; render(); if (auto) autoPlay(idx); };
 
 /* ---------- dropdown chọn unit (gom nhóm theo bộ sách) ---------- */
 const unitPicker = $("unitPicker");
@@ -1875,6 +1945,7 @@ new MutationObserver(() => {
   const open = [...document.querySelectorAll(".screen.open")].map(s => s.id);
   homeFloat.style.display =
     open.length && !open.includes("homeScreen") && !open.includes("loginScreen") ? "block" : "none";
+  if (open.length) autoStop();           // mở màn hình khác thì dừng auto
 }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ["class"] });
 $("homeLogin").onclick = () => { renderLogin(); $("loginScreen").classList.add("open"); };
 $("engBtn").onclick = () => $("engMenu").classList.toggle("open");
